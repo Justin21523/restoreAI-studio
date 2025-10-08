@@ -1,7 +1,10 @@
 # utils/config.py
 """
 Configuration management for RestorAI MVP.
-Simple, lightweight configuration without complex dependencies.
+Simple, lightweight configuration with centralized AI warehouse support.
+
+Why: Centralized AI warehouse enables sharing models across multiple projects,
+reducing disk usage and improving model management efficiency.
 """
 
 import os
@@ -30,13 +33,55 @@ def load_env(env_file: Path) -> Dict[str, str]:
 
 
 class Config:
-    """Simple configuration class with environment variable support."""
+    """Simple configuration class with centralized AI warehouse support."""
 
     def __init__(self):
         # Load .env file if exists
         env_file = Path(".env")
         if env_file.exists():
             load_env(env_file)
+
+    def _setup_paths(self):
+        """Setup centralized AI warehouse paths."""
+        # Get AI warehouse root (defaults to ~/ai-warehouse)
+        warehouse_root = os.getenv("AI_WAREHOUSE_ROOT")
+        if not warehouse_root:
+            warehouse_root = str(Path.home() / "ai-warehouse")
+
+        warehouse_path = Path(warehouse_root)
+
+        # Setup warehouse structure
+        self._paths = {
+            "warehouse": warehouse_path,
+            "models": warehouse_path / "models",
+            "cache": warehouse_path / "cache",
+            "temp": warehouse_path / "temp",
+        }
+
+        # Allow override via environment variables
+        if models_dir := os.getenv("MODELS_DIR"):
+            self._paths["models"] = Path(models_dir)
+
+        if cache_dir := os.getenv("CACHE_DIR"):
+            self._paths["cache"] = Path(cache_dir)
+
+        # Project-specific paths (remain in project directory)
+        project_root = Path.cwd()
+        self._paths.update(
+            {
+                "project": project_root,
+                "input": project_root / "data" / "input",
+                "output": project_root / "data" / "output",
+                "project_temp": project_root
+                / "data"
+                / "temp",  # For project-specific temp files
+            }
+        )
+
+    @property
+    def PATHS(self) -> Dict[str, Path]:
+        """Get all configured paths."""
+        return self._paths.copy()
 
     # === Device Configuration ===
     @property
@@ -49,26 +94,26 @@ class Config:
         """Use half precision for memory efficiency."""
         return os.getenv("USE_FP16", "true").lower() == "true"
 
-    # === Path Configuration ===
+    # === Legacy path properties (for backward compatibility) ===
     @property
     def model_dir(self) -> Path:
-        """Directory containing AI models."""
-        return Path(os.getenv("MODEL_DIR", "./data/models"))
+        """Directory containing AI models (legacy - use PATHS['models'])."""
+        return self._paths["models"]
 
     @property
     def input_dir(self) -> Path:
         """Input files directory."""
-        return Path(os.getenv("INPUT_DIR", "./data/input"))
+        return self._paths["input"]
 
     @property
     def output_dir(self) -> Path:
         """Output files directory."""
-        return Path(os.getenv("OUTPUT_DIR", "./data/output"))
+        return self._paths["output"]
 
     @property
     def temp_dir(self) -> Path:
-        """Temporary files directory."""
-        return Path(os.getenv("TEMP_DIR", "./data/temp"))
+        """Temporary files directory (project-specific)."""
+        return self._paths["project_temp"]
 
     # === Processing Configuration ===
     @property
@@ -118,21 +163,26 @@ class Config:
         """Share UI publicly."""
         return os.getenv("UI_SHARE", "false").lower() == "true"
 
-    # === Model Paths ===
+    # === Model Paths (using centralized warehouse) ===
     @property
     def esrgan_model_path(self) -> Path:
         """Real-ESRGAN model path."""
-        return self.model_dir / "esrgan" / "RealESRGAN_x4plus.pth"
+        return self._paths["models"] / "esrgan" / "RealESRGAN_x4plus.pth"
 
     @property
     def gfpgan_model_path(self) -> Path:
         """GFPGAN model path."""
-        return self.model_dir / "gfpgan" / "GFPGANv1.4.pth"
+        return self._paths["models"] / "gfpgan" / "GFPGANv1.4.pth"
 
     @property
     def rife_model_path(self) -> Path:
         """RIFE model path."""
-        return self.model_dir / "rife" / "flownet.pkl"
+        return self._paths["models"] / "rife" / "flownet.pkl"
+
+    @property
+    def edvr_model_path(self) -> Path:
+        """EDVR model path."""
+        return self._paths["models"] / "edvr" / "EDVR_L_x4_SR_Vimeo90K.pth"
 
     # === Utility Methods ===
     def _is_cuda_available(self) -> bool:
@@ -147,17 +197,59 @@ class Config:
     def create_directories(self) -> None:
         """Create necessary directories."""
         directories = [
-            self.model_dir,
-            self.input_dir,
-            self.output_dir,
-            self.temp_dir,
-            self.model_dir / "esrgan",
-            self.model_dir / "gfpgan",
-            self.model_dir / "rife",
+            self._paths["models"],
+            self._paths["cache"],
+            self._paths["temp"],
+            self._paths["input"],
+            self._paths["output"],
+            self._paths["project_temp"],
+            # Create model subdirectories
+            self._paths["models"] / "esrgan",
+            self._paths["models"] / "gfpgan",
+            self._paths["models"] / "rife",
+            self._paths["models"] / "edvr",
         ]
 
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
+
+        # Create symlink for backward compatibility (if not exists)
+        legacy_models_dir = Path("data/models")
+        if not legacy_models_dir.exists() and not legacy_models_dir.is_symlink():
+            try:
+                legacy_models_dir.parent.mkdir(exist_ok=True)
+                legacy_models_dir.symlink_to(
+                    self._paths["models"], target_is_directory=True
+                )
+            except (OSError, NotImplementedError):
+                # Symlink creation failed (Windows without admin rights, etc.)
+                pass
+
+    def validate_paths(self) -> Dict[str, bool]:
+        """Validate that required paths exist and are accessible."""
+        validation_results = {}
+
+        critical_paths = ["models", "cache"]
+        for path_name in critical_paths:
+            path = self._paths[path_name]
+            try:
+                # Check if path exists or can be created
+                if not path.exists():
+                    path.mkdir(parents=True, exist_ok=True)
+
+                # Test write permission
+                test_file = path / f".write_test_{os.getpid()}"
+                try:
+                    test_file.write_text("test")
+                    test_file.unlink()
+                    validation_results[path_name] = True
+                except (OSError, PermissionError):
+                    validation_results[path_name] = False
+
+            except Exception:
+                validation_results[path_name] = False
+
+        return validation_results
 
     def get_model_info(self) -> Dict[str, Dict[str, Any]]:
         """Get information about available models."""
@@ -192,6 +284,16 @@ class Config:
                     else 0
                 ),
             },
+            "edvr": {
+                "name": "EDVR",
+                "path": self.edvr_model_path,
+                "available": self.edvr_model_path.exists(),
+                "size_mb": (
+                    self._get_file_size_mb(self.edvr_model_path)
+                    if self.edvr_model_path.exists()
+                    else 0
+                ),
+            },
         }
         return models
 
@@ -207,6 +309,7 @@ class Config:
         return {
             "device": self.device,
             "use_fp16": self.use_fp16,
+            "paths": {k: str(v) for k, v in self._paths.items()},
             "model_dir": str(self.model_dir),
             "input_dir": str(self.input_dir),
             "output_dir": str(self.output_dir),

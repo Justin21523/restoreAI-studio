@@ -1,8 +1,10 @@
-# scripts/download_model.py
 #!/usr/bin/env python3
 """
-Model download script for RestorAI-studio .
-Downloads AI models from official sources with progress tracking.
+Model download script for RestorAI MVP.
+Downloads AI models to centralized warehouse with progress tracking.
+
+Why: Downloads to centralized AI warehouse (settings.PATHS["models"]) to enable
+model sharing across multiple projects and reduce disk usage.
 """
 
 import os
@@ -49,6 +51,14 @@ MODELS = {
         "size_mb": 19.0,
         "description": "Video frame interpolation",
     },
+    "edvr": {
+        "name": "EDVR Large x4",
+        "url": "https://github.com/xinntao/EDVR/releases/download/v2.0.0/EDVR_L_x4_SR_Vimeo90K_official-162b54e4.pth",
+        "filename": "EDVR_L_x4_SR_Vimeo90K.pth",
+        "dir": "edvr",
+        "size_mb": 78.0,
+        "description": "Video super-resolution and restoration",
+    },
 }
 
 # Essential models (smaller download)
@@ -58,7 +68,7 @@ ESSENTIAL_MODELS = ["esrgan"]
 def download_file(url: str, output_path: Path, expected_size_mb: float = None) -> bool:  # type: ignore
     """Download file with progress bar."""
     try:
-        logger.info(f"Downloading {output_path.name}...")
+        logger.info(f"Downloading {output_path.name} to centralized warehouse...")
 
         # Create output directory
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -67,7 +77,7 @@ def download_file(url: str, output_path: Path, expected_size_mb: float = None) -
         if output_path.exists():
             current_size_mb = output_path.stat().st_size / (1024 * 1024)
             if expected_size_mb and abs(current_size_mb - expected_size_mb) < 1.0:
-                logger.info(f"✅ {output_path.name} already exists and size matches")
+                logger.info(f"✅ {output_path.name} already exists in warehouse")
                 return True
             else:
                 logger.info(f"📥 Re-downloading {output_path.name} (size mismatch)")
@@ -90,7 +100,9 @@ def download_file(url: str, output_path: Path, expected_size_mb: float = None) -
         # Verify download
         if output_path.exists():
             actual_size_mb = output_path.stat().st_size / (1024 * 1024)
-            logger.info(f"✅ Downloaded {output_path.name} ({actual_size_mb:.1f} MB)")
+            logger.info(
+                f"✅ Downloaded {output_path.name} to warehouse ({actual_size_mb:.1f} MB)"
+            )
 
             if expected_size_mb and abs(actual_size_mb - expected_size_mb) > 5.0:
                 logger.warning(
@@ -110,20 +122,20 @@ def download_file(url: str, output_path: Path, expected_size_mb: float = None) -
         return False
 
 
-def check_disk_space(required_mb: float) -> bool:
-    """Check if enough disk space is available."""
+def check_disk_space(required_mb: float, target_path: Path) -> bool:
+    """Check if enough disk space is available at target path."""
     try:
         import shutil
 
-        free_space = shutil.disk_usage(".").free / (1024 * 1024)
+        free_space = shutil.disk_usage(target_path.parent).free / (1024 * 1024)
 
         if free_space < required_mb:
             logger.error(
-                f"❌ Insufficient disk space: {free_space:.1f} MB available, {required_mb:.1f} MB required"
+                f"❌ Insufficient disk space at {target_path.parent}: {free_space:.1f} MB available, {required_mb:.1f} MB required"
             )
             return False
 
-        logger.info(f"💾 Disk space: {free_space:.1f} MB available")
+        logger.info(f"💾 Disk space at warehouse: {free_space:.1f} MB available")
         return True
 
     except Exception as e:
@@ -147,21 +159,23 @@ def list_models():
 
 
 def download_models(model_list: List[str], config: Config) -> Dict[str, bool]:
-    """Download specified models."""
+    """Download specified models to centralized warehouse."""
     results = {}
+
+    # Get models directory from centralized warehouse
+    models_dir = config.PATHS["models"]
 
     # Calculate total size
     total_size_mb = sum(
         MODELS[model_id]["size_mb"] for model_id in model_list if model_id in MODELS
     )
 
-    # Check disk space
-    if not check_disk_space(total_size_mb * 1.2):  # 20% buffer
+    # Check disk space at warehouse location
+    if not check_disk_space(total_size_mb * 1.2, models_dir):  # 20% buffer
         return results
 
-    logger.info(
-        f"📥 Downloading {len(model_list)} models ({total_size_mb:.1f} MB total)"
-    )
+    logger.info(f"📥 Downloading {len(model_list)} models to warehouse: {models_dir}")
+    logger.info(f"📊 Total download size: {total_size_mb:.1f} MB")
 
     for model_id in model_list:
         if model_id not in MODELS:
@@ -170,7 +184,7 @@ def download_models(model_list: List[str], config: Config) -> Dict[str, bool]:
             continue
 
         model_info = MODELS[model_id]
-        output_path = config.model_dir / model_info["dir"] / model_info["filename"]
+        output_path = models_dir / model_info["dir"] / model_info["filename"]
 
         success = download_file(
             url=model_info["url"],
@@ -184,12 +198,14 @@ def download_models(model_list: List[str], config: Config) -> Dict[str, bool]:
 
 
 def verify_models(config: Config) -> Dict[str, bool]:
-    """Verify that downloaded models are valid."""
-    logger.info("🔍 Verifying downloaded models...")
+    """Verify that downloaded models are valid in centralized warehouse."""
+    logger.info("🔍 Verifying downloaded models in warehouse...")
 
+    models_dir = config.PATHS["models"]
     results = {}
+
     for model_id, info in MODELS.items():
-        model_path = config.model_dir / info["dir"] / info["filename"]
+        model_path = models_dir / info["dir"] / info["filename"]
 
         if model_path.exists():
             size_mb = model_path.stat().st_size / (1024 * 1024)
@@ -205,15 +221,44 @@ def verify_models(config: Config) -> Dict[str, bool]:
                 )
         else:
             results[model_id] = False
-            logger.info(f"❌ {info['name']} - Not found")
+            logger.info(f"❌ {info['name']} - Not found in warehouse")
 
     return results
+
+
+def check_warehouse_health(config: Config) -> bool:
+    """Check if AI warehouse is accessible and healthy."""
+    try:
+        warehouse_root = config.PATHS["warehouse"]
+        models_dir = config.PATHS["models"]
+        cache_dir = config.PATHS["cache"]
+
+        logger.info(f"🏭 AI Warehouse Location: {warehouse_root}")
+
+        # Validate paths
+        validation_results = config.validate_paths()
+
+        if not all(validation_results.values()):
+            failed_paths = [k for k, v in validation_results.items() if not v]
+            logger.error(
+                f"❌ Warehouse validation failed for: {', '.join(failed_paths)}"
+            )
+            logger.error(f"   Models dir: {models_dir}")
+            logger.error(f"   Cache dir: {cache_dir}")
+            return False
+
+        logger.info(f"✅ Warehouse is healthy and accessible")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Warehouse health check failed: {e}")
+        return False
 
 
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(
-        description="Download AI models for RestorAI MVP",
+        description="Download AI models to centralized warehouse for RestorAI MVP",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -222,6 +267,7 @@ Examples:
   python download_models.py --all               # Download all models
   python download_models.py esrgan gfpgan       # Download specific models
   python download_models.py --verify            # Verify existing models
+  python download_models.py --health            # Check warehouse health
         """,
     )
 
@@ -232,6 +278,7 @@ Examples:
     )
     parser.add_argument("--all", action="store_true", help="Download all models")
     parser.add_argument("--verify", action="store_true", help="Verify existing models")
+    parser.add_argument("--health", action="store_true", help="Check warehouse health")
     parser.add_argument(
         "--force", action="store_true", help="Force re-download even if files exist"
     )
@@ -240,18 +287,31 @@ Examples:
 
     # Load configuration
     config = Config()
-    config.create_directories()
 
     if args.list:
         list_models()
         return
+
+    if args.health:
+        if check_warehouse_health(config):
+            print(f"\n🎉 AI Warehouse is ready at: {config.PATHS['warehouse']}")
+        else:
+            print(f"\n❌ AI Warehouse has issues. Check logs above.")
+            sys.exit(1)
+        return
+
+    # Ensure warehouse directories exist
+    config.create_directories()
 
     if args.verify:
         results = verify_models(config)
         valid_count = sum(results.values())
         total_count = len(results)
 
-        print(f"\n📊 Verification Summary: {valid_count}/{total_count} models valid")
+        print(
+            f"\n📊 Verification Summary: {valid_count}/{total_count} models valid in warehouse"
+        )
+        print(f"📍 Warehouse location: {config.PATHS['models']}")
 
         if valid_count == 0:
             print("💡 Run with --essential to download basic models")
@@ -263,6 +323,11 @@ Examples:
 
         return
 
+    # Check warehouse health before downloading
+    if not check_warehouse_health(config):
+        logger.error("❌ Cannot proceed with download - warehouse is not healthy")
+        sys.exit(1)
+
     # Determine which models to download
     if args.all:
         models_to_download = list(MODELS.keys())
@@ -273,6 +338,7 @@ Examples:
     else:
         # Interactive mode
         print("🤖 RestorAI MVP - Model Downloader")
+        print(f"📍 Warehouse location: {config.PATHS['warehouse']}")
         list_models()
 
         choice = input("\nEnter choice (essential/all/model names): ").strip().lower()
@@ -289,7 +355,9 @@ Examples:
         logger.error("❌ No models specified for download")
         return
 
-    logger.info(f"🚀 Starting download of models: {', '.join(models_to_download)}")
+    logger.info(f"🚀 Starting download to warehouse: {config.PATHS['models']}")
+    logger.info(f"📦 Models to download: {', '.join(models_to_download)}")
+
     results = download_models(models_to_download, config)
 
     # Summary
@@ -298,8 +366,10 @@ Examples:
 
     print(f"\n📊 Download Summary:")
     print(f"✅ Successful: {len(successful)}/{len(results)}")
+    print(f"📍 Warehouse: {config.PATHS['models']}")
+
     if successful:
-        print(f"   {', '.join(successful)}")
+        print(f"   Downloaded: {', '.join(successful)}")
 
     if failed:
         print(f"❌ Failed: {len(failed)}")

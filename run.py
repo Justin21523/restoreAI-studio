@@ -15,6 +15,7 @@ import sys
 import argparse
 import logging
 from pathlib import Path
+from ui.cli.main import CLIApp
 
 # Add project root to Python path
 project_root = Path(__file__).parent
@@ -104,8 +105,6 @@ def launch_api_server(host="0.0.0.0", port=8000, reload=False):
 def launch_cli(args):
     """Launch command line interface."""
     try:
-        from ui.cli.main import CLIApp
-
         cli_app = CLIApp()
         cli_app.run(args)
 

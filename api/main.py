@@ -1,7 +1,10 @@
 # api/main.py
 """
-restoreAI-studio - FastAPI Server
-Lightweight REST API for AI image restoration.
+RestorAI MVP - FastAPI Server
+Lightweight REST API for AI image restoration with centralized warehouse support.
+
+Why: Uses centralized AI warehouse for model storage to enable sharing across projects
+and provides proper error handling when warehouse paths are not accessible.
 """
 
 import os
@@ -25,7 +28,41 @@ logger = logging.getLogger(__name__)
 
 # Load configuration
 config = Config()
-config.create_directories()
+
+
+# Validate warehouse paths on startup
+def validate_warehouse_setup():
+    """Validate that AI warehouse is properly configured and accessible."""
+    try:
+        # Check warehouse health
+        validation_results = config.validate_paths()
+
+        if not validation_results.get("models", False):
+            raise Exception(
+                f"AI warehouse models directory is not accessible: {config.PATHS['models']}\n"
+                f"Please check AI_WAREHOUSE_ROOT, MODELS_DIR environment variables, "
+                f"or run: python scripts/download_models.py --health"
+            )
+
+        if not validation_results.get("cache", False):
+            raise Exception(
+                f"AI warehouse cache directory is not accessible: {config.PATHS['cache']}\n"
+                f"Please check AI_WAREHOUSE_ROOT, CACHE_DIR environment variables"
+            )
+
+        # Create directories if needed
+        config.create_directories()
+
+        logger.info(f"✅ AI Warehouse validated: {config.PATHS['warehouse']}")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ AI Warehouse validation failed: {e}")
+        return False
+
+
+# Validate warehouse before creating app
+warehouse_healthy = validate_warehouse_setup()
 
 # Create FastAPI app
 app = FastAPI(
@@ -56,12 +93,34 @@ if config.output_dir.exists():
 @app.get("/")
 async def root():
     """Root endpoint with basic information."""
+    # Check warehouse status
+    if not warehouse_healthy:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "AI Warehouse not accessible",
+                "message": "The centralized AI warehouse is not properly configured or accessible.",
+                "warehouse_path": str(config.PATHS["warehouse"]),
+                "models_path": str(config.PATHS["models"]),
+                "suggestions": [
+                    "Check environment variables: AI_WAREHOUSE_ROOT, MODELS_DIR, CACHE_DIR",
+                    "Run: python scripts/download_models.py --health",
+                    "Ensure warehouse directory has write permissions",
+                ],
+            },
+        )
+
     return {
         "name": config.api_title,
         "description": config.api_description,
         "version": "1.0.0",
         "status": "running",
         "docs_url": "/docs",
+        "warehouse": {
+            "location": str(config.PATHS["warehouse"]),
+            "models_dir": str(config.PATHS["models"]),
+            "cache_dir": str(config.PATHS["cache"]),
+        },
         "config": {
             "device": config.device,
             "models_available": len(
@@ -74,10 +133,15 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Simple health check endpoint."""
+    """Comprehensive health check including warehouse status."""
     try:
-        # Check if required directories exist
-        config.create_directories()
+        # Check warehouse health
+        validation_results = config.validate_paths()
+        warehouse_status = "healthy" if all(validation_results.values()) else "degraded"
+
+        if warehouse_status == "degraded":
+            failed_paths = [k for k, v in validation_results.items() if not v]
+            logger.warning(f"Warehouse degraded - failed paths: {failed_paths}")
 
         # Check model availability
         models = config.get_model_info()
@@ -95,27 +159,48 @@ async def health_check():
                 device_status = "torch_not_installed"
 
         return {
-            "status": "healthy",
+            "status": "healthy" if warehouse_status == "healthy" else "degraded",
+            "warehouse": {
+                "status": warehouse_status,
+                "location": str(config.PATHS["warehouse"]),
+                "validation": validation_results,
+            },
             "device": config.device,
             "device_status": device_status,
             "models_available": available_models,
-            "directories_ok": True,
+            "directories_ok": warehouse_status == "healthy",
         }
 
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return JSONResponse(
-            status_code=503, content={"status": "unhealthy", "error": str(e)}
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "error": str(e),
+                "warehouse": {
+                    "status": "error",
+                    "location": str(config.PATHS["warehouse"]),
+                },
+            },
         )
 
 
 @app.get("/models")
 async def get_models():
-    """Get information about available models."""
+    """Get information about available models in centralized warehouse."""
     try:
+        # Validate warehouse before checking models
+        if not warehouse_healthy:
+            raise HTTPException(
+                status_code=500,
+                detail="AI warehouse is not accessible. Check configuration and run health check.",
+            )
+
         models = config.get_model_info()
         return {
             "models": models,
+            "warehouse_location": str(config.PATHS["models"]),
             "summary": {
                 "total": len(models),
                 "available": len([m for m in models.values() if m["available"]]),
@@ -124,6 +209,8 @@ async def get_models():
                 ),
             },
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get model info: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -134,19 +221,23 @@ async def startup_event():
     """Application startup tasks."""
     logger.info(f"Starting {config.api_title}")
     logger.info(f"Device: {config.device}")
-    logger.info(f"Model directory: {config.model_dir}")
+    logger.info(f"AI Warehouse: {config.PATHS['warehouse']}")
+    logger.info(f"Models directory: {config.PATHS['models']}")
+    logger.info(f"Cache directory: {config.PATHS['cache']}")
 
-    # Ensure directories exist
-    config.create_directories()
+    if not warehouse_healthy:
+        logger.error("❌ AI Warehouse is not healthy - some features may not work")
+        logger.error("   Run: python scripts/download_models.py --health")
+        return
 
     # Log available models
     models = config.get_model_info()
     available_models = [name for name, info in models.items() if info["available"]]
     if available_models:
-        logger.info(f"Available models: {', '.join(available_models)}")
+        logger.info(f"Available models in warehouse: {', '.join(available_models)}")
     else:
         logger.warning(
-            "No models found. Download with: python scripts/download_models.py"
+            "No models found in warehouse. Download with: python scripts/download_models.py --essential"
         )
 
 
@@ -169,6 +260,23 @@ async def shutdown_event():
 async def global_exception_handler(request, exc):
     """Global exception handler."""
     logger.error(f"Unhandled exception: {exc}")
+
+    # Check if it's a warehouse-related error
+    if "warehouse" in str(exc).lower() or "models" in str(exc).lower():
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "AI Warehouse Error",
+                "detail": str(exc),
+                "warehouse_location": str(config.PATHS["warehouse"]),
+                "suggestions": [
+                    "Check AI warehouse configuration",
+                    "Run: python scripts/download_models.py --health",
+                    "Verify environment variables: AI_WAREHOUSE_ROOT, MODELS_DIR",
+                ],
+            },
+        )
+
     return JSONResponse(
         status_code=500,
         content={
