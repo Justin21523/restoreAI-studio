@@ -20,7 +20,20 @@ from fastapi.responses import JSONResponse
 sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.config import Config
+from api.config import Settings
 from api.routes import router as api_router
+from api.routes_video import router as video_router
+from api.jobs import job_runner
+from api.middleware import (
+    RequestIDMiddleware,
+    MetricsMiddleware,
+    TimingMiddleware,
+    global_error_handler,
+)
+from api.routes_history import router as history_router
+from api.routes_metrics import router as metrics_router
+from api.routes_admin import router as admin_router
+from utils.logging import setup_logging
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -64,26 +77,77 @@ def validate_warehouse_setup():
 # Validate warehouse before creating app
 warehouse_healthy = validate_warehouse_setup()
 
-# Create FastAPI app
-app = FastAPI(
-    title=config.api_title,
-    description=config.api_description,
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-)
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def create_app() -> FastAPI:
+    """Create and configure FastAPI application"""
+    # Setup structured logging
+    setup_logging()
 
-# Include API routes
-app.include_router(api_router, prefix="/api/v1")
+    settings = Settings()
+
+    # Create FastAPI app
+    app = FastAPI(
+        title="RestorAI API",
+        description="AI-powered image and video restoration service",
+        version="1.0.0",
+        openapi_url=f"{settings.api_prefix}/openapi.json",
+        docs_url=f"{settings.api_prefix}/docs",
+    )
+
+    # Add middleware
+    app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(MetricsMiddleware)
+    app.add_middleware(TimingMiddleware)
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # For development only
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Include all routers
+    app.include_router(api_router, prefix=settings.api_prefix)
+    app.include_router(history_router, prefix=settings.api_prefix)
+    app.include_router(metrics_router, prefix=settings.api_prefix)
+    app.include_router(admin_router, prefix=settings.api_prefix)
+
+    # Add global error handler
+    app.add_exception_handler(Exception, global_error_handler)
+
+    # Add startup event for warmup
+    @app.on_event("startup")
+    async def startup_event():
+        # Start periodic cleanup
+        import asyncio
+        from api.jobs import job_runner
+
+        async def periodic_cleanup():
+            while True:
+                await asyncio.sleep(300)  # 5 minutes
+                job_runner.cleanup_old_jobs()
+
+                # Cleanup idle models
+                from core.manager import resource_manager
+
+                resource_manager.cleanup_idle_models()
+
+        asyncio.create_task(periodic_cleanup())
+
+        # Warm up default models
+        if settings.policy_auto:
+            logger.info("Warming up default models...")
+            from core.lifecycle import lifecycle_manager
+
+            lifecycle_manager.warmup_model("realesrgan-x4plus")
+            lifecycle_manager.warmup_model("gfpgan")
+
+    return app
+
+
+app = create_app()
 
 # Serve static files (output directory)
 if config.output_dir.exists():
