@@ -1,0 +1,62 @@
+{
+  "super_resolution": {
+    "default": {
+      "scale": 2,
+      "model": "realesrgan-x4plus"
+    },
+    "presets": {
+      "balanced": {
+        "scale": 2,
+        "model": "realesrgan-x2plus"
+      },
+      "high_quality": {
+        "scale": 4,
+        "model": "realesrgan-x4plus"
+      }
+    }
+  },
+  "face_restoration": {
+    "default": {
+      "method": "gfpgan",
+      "strength": 0.5
+    },
+    "presets": {
+      "natural": {
+        "method": "gfpgan",
+        "strength": 0.3
+      },
+      "enhanced": {
+        "method": "codeformer",
+        "strength": 0.7
+      }
+    }
+  },
+  "video_interpolation": {
+    "default": {
+      "target_fps": 60,
+      "model": "rife-v4.6"
+    },
+    "presets": {
+      "smooth": {
+        "target_fps": 60
+      },
+      "ultra_smooth": {
+        "target_fps": 120
+      }
+    }
+  },
+  "video_upscale": {
+    "default": {
+      "scale": 2,
+      "model": "realesrgan-x4plus"
+    },
+    "presets": {
+      "balanced": {
+        "scale": 2
+      },
+      "high_quality": {
+        "scale": 4
+      }
+    }
+  }
+}

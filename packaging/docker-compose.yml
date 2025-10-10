@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  restorai:
+    build:
+      context: ../..
+      dockerfile: packaging/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - AI_CACHE_ROOT=/opt/ai-warehouse
+      - LOG_LEVEL=info
+      - DEVICE=cuda
+    volumes:
+      - ai_warehouse:/opt/ai-warehouse
+      - ./profiles/.env.gpu:/app/.env:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  ai_warehouse:
+    driver: local
