@@ -1,15 +1,124 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="RestorAI Studio is an AI image restoration and super-resolution platform prototype reshaped into an interview-ready portfolio demo. The public demo uses browser Canvas to simulate the inference workflow without GPU, model weights, or external services; the local smoke path exposes a FastAPI + Pillow API to validate upload, processing, and PNG response behavior." />
-    <title>RestorAI Studio — AI Image Restoration Portfolio Workbench Demo</title>
+    <title>RestorAI Studio - Portfolio Demo</title>
+    <meta
+      name="description"
+      content="RestorAI Studio mock-safe portfolio demo: AI image restoration workflow, before/after viewer, pipeline status, and demo-ready screenshots."
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-project-demo="true">
-    <div id="app"></div>
-    <script>window.__PROJECT_DEMO__ = {"slug":"restoreAI-studio","title":"RestorAI Studio — AI Image Restoration Portfolio Workbench","category":"AI workflow","status":"prototype","year":2026,"summary":"RestorAI Studio is an AI image restoration and super-resolution platform prototype reshaped into an interview-ready portfolio demo. The public demo uses browser Canvas to simulate the inference workflow without GPU, model weights, or external services; the local smoke path exposes a FastAPI + Pillow API to validate upload, processing, and PNG response behavior.","problem":"The original project had a useful AI restoration service architecture, but true model inference depends on large weights, GPU availability, and version-sensitive packages, making it hard for users to launch, inspect, screenshot, or evaluate quickly.","solution":"Split the project into two presentation-safe paths: a pure static GitHub Pages demo whose first screen is the restoration workbench, and a local FastAPI/Pillow smoke API for upload and processing verification. The README now documents the system with Mermaid product flow, architecture, data flow, deployment, and module diagrams.","architecture":"This case study is generated from the portfolio catalog pipeline using README, Git metadata, package/build configuration, and media signals. The final architecture narrative still needs source-level review. Current detected technology signals include: Python, FastAPI, Pillow, JavaScript, Canvas, Playwright, PyTorch, Real-ESRGAN, GFPGAN, RIFE, Gradio, PyQt, GitHub Pages, Docker.","setupGuide":"This project does not expose a verified runnable web command yet. Review the README/source tree and add exact install, run, test, and build commands before interview use.\nNo verified build command was detected. Treat the current portfolio page as a case-study placeholder until build steps are reviewed.","technologies":["Python","FastAPI","Pillow","JavaScript","Canvas","Playwright","PyTorch","Real-ESRGAN","GFPGAN","RIFE","Gradio","PyQt","GitHub Pages","Docker"],"repoUrl":"https://github.com/Justin21523/restoreAI-studio","readmeUrl":"https://github.com/Justin21523/restoreAI-studio#readme","modules":[".env.example",".github/",".gitignore",".vscode/","DEPLOYMENT.md","Dockerfile","README.md","api/","configs/","core/","docker/","docs/","examples/","packaging/","portfolio-web/","requirements.txt","run.py","scripts/"],"features":["What Is Implemented","Module Organization","Split the project into two presentation-safe paths: a pure static GitHub Pages demo whose first screen is the restoration workbench, and a local FastAPI/Pillow smoke API for upload and processing verification","The README now documents the system with Mermaid product flow, architecture, data flow, deployment, and module diagrams"],"records":[{"id":"R01","name":"What Is Implemented","owner":"Workflow","status":"Ready","score":62},{"id":"R02","name":"Module Organization","owner":"Data","status":"Running","score":69},{"id":"R03","name":"Split the project into two presentation-safe paths: a pure static GitHub Pages demo whose first screen is the restoration workbench, and a local FastAPI/Pillow smoke API for upload and processing verification","owner":"Automation","status":"Review","score":76},{"id":"R04","name":"The README now documents the system with Mermaid product flow, architecture, data flow, deployment, and module diagrams","owner":"Review","status":"Complete","score":83}]};</script>
-    <script src="./main.js"></script>
+  <body>
+    <main class="app-shell">
+      <section class="product-stage" aria-labelledby="product-title">
+        <div class="stage-copy">
+          <p class="eyebrow">Mock-safe portfolio demo</p>
+          <h1 id="product-title">RestorAI Studio</h1>
+          <p class="lead">
+            AI 影像修復與超解析工作台。此公開版在瀏覽器內用 Canvas 模擬推論流程，展示上傳、任務佇列、品質指標與 before/after 檢視，不依賴 GPU 或外部模型。
+          </p>
+          <div class="hero-actions" aria-label="Demo actions">
+            <button class="primary-action" id="run-demo" type="button">Run demo flow</button>
+            <button class="secondary-action" id="load-sample" type="button">Load sample image</button>
+          </div>
+        </div>
+
+        <div class="demo-workbench" id="demo-workbench">
+          <div class="toolbar" aria-label="Restoration controls">
+            <label>
+              Scenario
+              <select id="scenario">
+                <option value="archive">Archive photo restore</option>
+                <option value="portrait">Portrait face cleanup</option>
+                <option value="product">Product detail upscale</option>
+              </select>
+            </label>
+            <label>
+              Scale
+              <select id="scale">
+                <option value="2">2x</option>
+                <option value="4" selected>4x</option>
+              </select>
+            </label>
+            <label class="range-label">
+              Restore strength
+              <input id="strength" type="range" min="0" max="100" value="72" />
+            </label>
+            <label class="file-label">
+              <span>Upload</span>
+              <input id="upload" type="file" accept="image/*" />
+            </label>
+          </div>
+
+          <div class="viewer-grid">
+            <section class="before-after" aria-label="Before and after image viewer">
+              <div class="viewer-header">
+                <div>
+                  <p class="panel-kicker">Before / After</p>
+                  <h2 id="asset-title">Archive photo restore</h2>
+                </div>
+                <span class="status-pill" id="job-status">ready</span>
+              </div>
+              <div class="image-compare" id="before-after">
+                <canvas id="before-canvas" width="720" height="460"></canvas>
+                <canvas id="after-canvas" width="720" height="460"></canvas>
+                <div class="split-handle" id="split-handle" aria-hidden="true"></div>
+              </div>
+              <input id="compare-slider" class="compare-slider" type="range" min="0" max="100" value="52" aria-label="Before after comparison" />
+            </section>
+
+            <aside class="side-panel" aria-label="Pipeline status">
+              <div class="metric-row">
+                <div>
+                  <span class="metric-value" id="metric-resolution">720 -> 2880 px</span>
+                  <span class="metric-label">output width</span>
+                </div>
+                <div>
+                  <span class="metric-value" id="metric-latency">1.8s</span>
+                  <span class="metric-label">demo latency</span>
+                </div>
+              </div>
+
+              <ol class="pipeline-list" id="pipeline-list">
+                <li data-step="ingest"><span></span>Image ingest</li>
+                <li data-step="safety"><span></span>Safety check</li>
+                <li data-step="restore"><span></span>Restore + denoise</li>
+                <li data-step="upscale"><span></span>Super-resolution</li>
+                <li data-step="export"><span></span>Export artifact</li>
+              </ol>
+
+              <div class="debug-panel">
+                <p class="panel-kicker">Job payload</p>
+                <pre id="debug-json"></pre>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="info-band" aria-label="Architecture summary">
+        <article>
+          <p class="panel-kicker">Architecture</p>
+          <h2>Prototype architecture with stable demo mode</h2>
+          <p>
+            The original codebase keeps FastAPI routers, Gradio, CLI, desktop shell, model warehouse paths, and Real-ESRGAN/GFPGAN/RIFE adapters. The public demo uses a deterministic browser pipeline so interviewers can inspect the product without downloading model weights.
+          </p>
+        </article>
+        <div class="stack-map" aria-label="Technology stack">
+          <span>FastAPI</span>
+          <span>PyTorch</span>
+          <span>Real-ESRGAN</span>
+          <span>GFPGAN</span>
+          <span>RIFE</span>
+          <span>Canvas demo</span>
+          <span>GitHub Pages</span>
+          <span>Docker-ready</span>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
   </body>
 </html>
