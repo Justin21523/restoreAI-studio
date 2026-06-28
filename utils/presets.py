@@ -109,7 +109,7 @@ class PresetManager:
                 task_type=TaskType.VIDEO_INTERPOLATE,
                 parameters={"target_fps": 120, "model": "rife-v4.6"},
                 description="Ultra-smooth video interpolation to 120 FPS",
-                tags["ultra-smooth", "high-fps"]
+                tags=["ultra-smooth", "high-fps"]
             )
         ]
 

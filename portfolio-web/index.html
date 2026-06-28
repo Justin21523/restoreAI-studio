@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RestorAI Studio - Portfolio Demo</title>
+    <meta
+      name="description"
+      content="RestorAI Studio mock-safe portfolio demo: AI image restoration workflow, before/after viewer, pipeline status, and demo-ready screenshots."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="product-stage" aria-labelledby="product-title">
+        <div class="stage-copy">
+          <p class="eyebrow">Mock-safe portfolio demo</p>
+          <h1 id="product-title">RestorAI Studio</h1>
+          <p class="lead">
+            AI 影像修復與超解析工作台。此公開版在瀏覽器內用 Canvas 模擬推論流程，展示上傳、任務佇列、品質指標與 before/after 檢視，不依賴 GPU 或外部模型。
+          </p>
+          <div class="hero-actions" aria-label="Demo actions">
+            <button class="primary-action" id="run-demo" type="button">Run demo flow</button>
+            <button class="secondary-action" id="load-sample" type="button">Load sample image</button>
+          </div>
+        </div>
+
+        <div class="demo-workbench" id="demo-workbench">
+          <div class="toolbar" aria-label="Restoration controls">
+            <label>
+              Scenario
+              <select id="scenario">
+                <option value="archive">Archive photo restore</option>
+                <option value="portrait">Portrait face cleanup</option>
+                <option value="product">Product detail upscale</option>
+              </select>
+            </label>
+            <label>
+              Scale
+              <select id="scale">
+                <option value="2">2x</option>
+                <option value="4" selected>4x</option>
+              </select>
+            </label>
+            <label class="range-label">
+              Restore strength
+              <input id="strength" type="range" min="0" max="100" value="72" />
+            </label>
+            <label class="file-label">
+              <span>Upload</span>
+              <input id="upload" type="file" accept="image/*" />
+            </label>
+          </div>
+
+          <div class="viewer-grid">
+            <section class="before-after" aria-label="Before and after image viewer">
+              <div class="viewer-header">
+                <div>
+                  <p class="panel-kicker">Before / After</p>
+                  <h2 id="asset-title">Archive photo restore</h2>
+                </div>
+                <span class="status-pill" id="job-status">ready</span>
+              </div>
+              <div class="image-compare" id="before-after">
+                <canvas id="before-canvas" width="720" height="460"></canvas>
+                <canvas id="after-canvas" width="720" height="460"></canvas>
+                <div class="split-handle" id="split-handle" aria-hidden="true"></div>
+              </div>
+              <input id="compare-slider" class="compare-slider" type="range" min="0" max="100" value="52" aria-label="Before after comparison" />
+            </section>
+
+            <aside class="side-panel" aria-label="Pipeline status">
+              <div class="metric-row">
+                <div>
+                  <span class="metric-value" id="metric-resolution">720 -> 2880 px</span>
+                  <span class="metric-label">output width</span>
+                </div>
+                <div>
+                  <span class="metric-value" id="metric-latency">1.8s</span>
+                  <span class="metric-label">demo latency</span>
+                </div>
+              </div>
+
+              <ol class="pipeline-list" id="pipeline-list">
+                <li data-step="ingest"><span></span>Image ingest</li>
+                <li data-step="safety"><span></span>Safety check</li>
+                <li data-step="restore"><span></span>Restore + denoise</li>
+                <li data-step="upscale"><span></span>Super-resolution</li>
+                <li data-step="export"><span></span>Export artifact</li>
+              </ol>
+
+              <div class="debug-panel">
+                <p class="panel-kicker">Job payload</p>
+                <pre id="debug-json"></pre>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="info-band" aria-label="Architecture summary">
+        <article>
+          <p class="panel-kicker">Architecture</p>
+          <h2>Prototype architecture with stable demo mode</h2>
+          <p>
+            The original codebase keeps FastAPI routers, Gradio, CLI, desktop shell, model warehouse paths, and Real-ESRGAN/GFPGAN/RIFE adapters. The public demo uses a deterministic browser pipeline so interviewers can inspect the product without downloading model weights.
+          </p>
+        </article>
+        <div class="stack-map" aria-label="Technology stack">
+          <span>FastAPI</span>
+          <span>PyTorch</span>
+          <span>Real-ESRGAN</span>
+          <span>GFPGAN</span>
+          <span>RIFE</span>
+          <span>Canvas demo</span>
+          <span>GitHub Pages</span>
+          <span>Docker-ready</span>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

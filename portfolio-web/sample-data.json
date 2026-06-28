@@ -1,0 +1,29 @@
+{
+  "scenarios": {
+    "archive": {
+      "title": "Archive photo restore",
+      "subject": "Taipei street archive",
+      "inputWidth": 720,
+      "inputHeight": 460,
+      "noise": 0.38,
+      "latency": "1.8s"
+    },
+    "portrait": {
+      "title": "Portrait face cleanup",
+      "subject": "Studio portrait",
+      "inputWidth": 720,
+      "inputHeight": 460,
+      "noise": 0.3,
+      "latency": "1.5s"
+    },
+    "product": {
+      "title": "Product detail upscale",
+      "subject": "E-commerce product crop",
+      "inputWidth": 720,
+      "inputHeight": 460,
+      "noise": 0.24,
+      "latency": "1.2s"
+    }
+  },
+  "pipeline": ["ingest", "safety", "restore", "upscale", "export"]
+}
