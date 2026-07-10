@@ -10,7 +10,7 @@
     "typecheck": "tsc -b web/tsconfig.json --pretty false",
     "test": "vitest run",
     "e2e": "playwright test",
-    "format:check": "prettier --check 'web/**/*.{ts,tsx,css,json}' '*.{ts,json}'"
+    "format:check": "prettier --check 'web/**/*.{ts,tsx,css,json}' 'tests/e2e/**/*.ts' '*.{ts,json}'"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.0",

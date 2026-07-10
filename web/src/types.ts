@@ -96,14 +96,68 @@ export interface SystemStatus {
 
 export interface DemoScenario {
   id: string;
+  job_id: string;
   kind: "image" | "video";
   title: { en: string; zh: string };
   description: { en: string; zh: string };
   input: string;
-  output: string;
+  outputs: Record<string, string>;
+  default_output: string;
   operation: string;
   model: string;
-  parameters: Record<string, string | number>;
+  model_ids: string[];
+  parameters: Record<string, string | number | boolean>;
   metrics: Record<string, string | number>;
-  events: Array<{ stage: string; progress: number }>;
+  artifact: {
+    input_sha256: string;
+    outputs: Record<
+      string,
+      { path: string; sha256: string; size_bytes: number }
+    >;
+  };
+  events: Array<{
+    id: number;
+    stage: string;
+    progress: number;
+    message: string;
+    duration_ms: number;
+  }>;
+}
+
+export interface DemoEvidence {
+  generated_at: string;
+  environment: {
+    gpu: string;
+    driver: string;
+    vram_mib: number;
+    compute_capability: string;
+    cuda: string;
+    pytorch: string;
+    fp16: boolean;
+    python: string;
+    platform: string;
+  };
+  models: Array<{
+    model_id: string;
+    family: string;
+    path: string;
+    sha256: string;
+    size_bytes: number;
+    valid: boolean;
+  }>;
+  benchmarks: {
+    method: string;
+    runs: Array<{
+      id: string;
+      cold_ms: number;
+      warm_median_ms: number | null;
+      peak_vram_mib: number;
+    }>;
+  };
+  verification: {
+    model_root: string;
+    valid_models: number;
+    invalid_models: number;
+    method: string;
+  };
 }

@@ -63,10 +63,22 @@ def capture() -> None:
 
             page = browser.new_page(viewport={"width": 1440, "height": 1050}, device_scale_factor=1)
             page.goto(f"http://127.0.0.1:{PORT}/", wait_until="networkidle")
+            page.screenshot(path=str(SCREENSHOTS / "showcase.png"), full_page=True)
+            page.goto(
+                f"http://127.0.0.1:{PORT}/#/workspace?scenario=face-lab",
+                wait_until="networkidle",
+            )
             page.screenshot(path=str(SCREENSHOTS / "workspace.png"), full_page=True)
             page.get_by_role("button", name="Run demo flow").click()
             page.wait_for_timeout(2300)
             page.screenshot(path=str(SCREENSHOTS / "pipeline-complete.png"), full_page=False)
+            page.get_by_role("link", name="Inspect Job & Artifact").click()
+            page.wait_for_timeout(500)
+            page.locator("header").evaluate("element => element.style.position = 'static'")
+            page.screenshot(path=str(SCREENSHOTS / "job-detail.png"), full_page=True)
+
+            page.goto(f"http://127.0.0.1:{PORT}/#/batches/demo-batch-partial")
+            page.screenshot(path=str(SCREENSHOTS / "batch-recovery.png"), full_page=True)
 
             mobile = browser.new_page(viewport={"width": 390, "height": 900}, is_mobile=True)
             mobile.goto(f"http://127.0.0.1:{PORT}/", wait_until="networkidle")
@@ -79,17 +91,25 @@ def capture() -> None:
             )
             video_page = context.new_page()
             video_page.goto(f"http://127.0.0.1:{PORT}/", wait_until="networkidle")
-            video_page.wait_for_timeout(500)
+            video_page.wait_for_timeout(700)
+            video_page.get_by_role("link", name="Open interactive lab").click()
+            video_page.wait_for_timeout(700)
             video_page.get_by_role("slider", name="Before and after position").fill("28")
             video_page.wait_for_timeout(500)
             video_page.get_by_role("slider", name="Before and after position").fill("72")
             video_page.wait_for_timeout(500)
             video_page.get_by_role("button", name="Run demo flow").click()
-            video_page.wait_for_timeout(2600)
+            video_page.wait_for_timeout(1800)
+            video_page.get_by_role("link", name="Inspect Job & Artifact").click()
+            video_page.wait_for_timeout(1000)
+            video_page.get_by_role("link", name="Jobs").click()
+            video_page.wait_for_timeout(700)
+            video_page.get_by_text("Batch partial failure replay").click()
+            video_page.wait_for_timeout(900)
+            video_page.get_by_role("link", name="Workspace").click()
+            video_page.wait_for_timeout(600)
             video_page.get_by_label("Demo scenario").select_option("product-detail")
             video_page.wait_for_timeout(900)
-            video_page.get_by_role("link", name="Jobs").click()
-            video_page.wait_for_timeout(800)
             video_page.get_by_role("link", name="Models").click()
             video_page.wait_for_timeout(1000)
             video_page.get_by_role("link", name="System").click()
@@ -102,9 +122,16 @@ def capture() -> None:
 
             browser.close()
 
-        for png_name in ["workspace", "pipeline-complete", "mobile"]:
+        for png_name in [
+            "showcase",
+            "workspace",
+            "pipeline-complete",
+            "job-detail",
+            "batch-recovery",
+            "mobile",
+        ]:
             convert_to_webp(SCREENSHOTS / f"{png_name}.png", SCREENSHOTS / f"{png_name}.webp")
-        shutil.copy2(SCREENSHOTS / "workspace.webp", OUT / "cover.webp")
+        shutil.copy2(SCREENSHOTS / "showcase.webp", OUT / "cover.webp")
     finally:
         server.terminate()
         server.wait(timeout=5)

@@ -7,6 +7,7 @@ import {
   History,
   JobDetail,
   Models,
+  Showcase,
   SystemPage,
   Workspace,
 } from "./pages";
@@ -20,7 +21,8 @@ export default function App() {
           RestorAI <span>Studio</span>
         </Link>
         <nav>
-          <Link to="/">{t("nav.workspace")}</Link>
+          <Link to="/">{t("nav.showcase")}</Link>
+          <Link to="/workspace">{t("nav.workspace")}</Link>
           <Link to="/jobs">{t("nav.jobs")}</Link>
           <Link to="/models">{t("nav.models")}</Link>
           <Link to="/system">{t("nav.system")}</Link>
@@ -29,7 +31,8 @@ export default function App() {
         <span className={`environment environment-${appMode}`}>{appMode}</span>
       </header>
       <Routes>
-        <Route path="/" element={<Workspace />} />
+        <Route path="/" element={<Showcase />} />
+        <Route path="/workspace" element={<Workspace />} />
         <Route path="/jobs" element={<History />} />
         <Route path="/jobs/:jobId" element={<JobDetail />} />
         <Route path="/batches/:batchId" element={<BatchDetail />} />

@@ -5,7 +5,8 @@ GFPGAN, CodeFormer, and RIFE. Processing is durable and observable: uploads
 become queued Jobs, progress is recorded as events, and successful results are
 published as expiring Artifacts.
 
-[Public workflow demo](https://justin21523.github.io/restoreAI-studio/) ·
+[Interactive GPU evidence demo](https://justin21523.github.io/restoreAI-studio/) ·
+[Real API → RQ → CUDA recording](docs/demo/real-gpu-flow.webm) ·
 [API reference](docs/API.md) · [Model registry](docs/MODELS.md) ·
 [Deployment guide](DEPLOYMENT.md)
 
@@ -31,7 +32,7 @@ durable history, reproducible output metadata, cancellation, retry, and expiry.
 | Job system | PostgreSQL source of truth, Redis/RQ GPU queue, progress events, cancel/retry |
 | Artifacts | SHA-256 input/output provenance, model snapshot, download/delete, 24-hour file expiry |
 | Web product | Bilingual React workspace, presets, Job/Batch detail, comparison, Models and System views |
-| Public demo | Three real precomputed GPU scenarios on GitHub Pages; no upload or backend required |
+| Public demo | Four real GPU workflows, full Job/Batch replay, benchmarks and provenance on GitHub Pages |
 
 ## Architecture
 
@@ -162,6 +163,7 @@ npm run typecheck
 npm run build
 npm run e2e
 python scripts/gpu_smoke.py
+python scripts/build_demo_scenarios.py --gpu
 alembic upgrade head --sql >/tmp/restorai-schema.sql
 ```
 
@@ -186,7 +188,7 @@ end-to-end path includes API upload → PostgreSQL/outbox → Redis/RQ → CUDA 
 
 | Environment | Purpose | Models/data |
 | --- | --- | --- |
-| GitHub Pages | Fast interview walkthrough and responsive UX | Real precomputed CodeFormer, Real-ESRGAN, and RIFE outputs |
+| GitHub Pages | Fast interview walkthrough and responsive UX | Real GFPGAN, CodeFormer, Real-ESRGAN and RIFE outputs with workflow replay |
 | Local real mode | Complete CUDA inference and Job lifecycle | `/mnt/c/ai_models`, PostgreSQL, Redis, local storage |
 | API container | Portable control plane/frontend | Mount model/storage paths; GPU worker remains host-first |
 
@@ -198,12 +200,21 @@ boundary explicit.
 
 | Scenario | Real pipeline | Measured result on RTX 5080 |
 | --- | --- | --- |
-| Archive portrait | CodeFormer + Real-ESRGAN 2× | 1 face, 256² → 512², about 2.8 s |
-| Product detail | Real-ESRGAN 4× | 256² → 1024², about 0.2 s after model warm-up |
-| City motion | RIFE v4.25 | 24 → 48 FPS, audio preserved, about 1.4 s |
+| Face restoration lab | GFPGAN / CodeFormer / Real-ESRGAN 2× | Same portrait, 1 face, 256² → 512² |
+| Product detail | Real-ESRGAN 4× | 256² → 1024² with FP16 tiled inference |
+| City motion | RIFE v4.25 | 24 → 48 FPS, 144 output frames, audio preserved |
+| Combined video | RIFE + Real-ESRGAN 2× | 192×108/12 FPS → 384×216/24 FPS, audio preserved |
 
-The project-owned masters, generation notes, deterministic degradation, and
-GPU output process are documented in [docs/demo/SOURCES.md](docs/demo/SOURCES.md).
+The public site also exposes successful and failed Job detail, Artifact SHA-256,
+Batch partial failure/retry lineage, all seven model registry entries, a recorded
+system snapshot, and cold/warm benchmark evidence. The project-owned masters,
+generation notes, deterministic degradation, and GPU output process are documented
+in [docs/demo/SOURCES.md](docs/demo/SOURCES.md).
+
+The checked-in [real GPU browser recording](docs/demo/real-gpu-flow.webm) was
+captured against the actual FastAPI/PostgreSQL/Redis/RQ stack. Its upload completed
+as a real `upscale` Job with eight persisted events and a Real-ESRGAN x2plus
+Artifact; it is separate from the transparent static workflow replay.
 
 ## Key engineering decisions
 
@@ -233,13 +244,13 @@ GPU output process are documented in [docs/demo/SOURCES.md](docs/demo/SOURCES.md
 
 ## Portfolio demo script
 
-1. Open Workspace and explain the demo/real environment boundary.
-2. Queue two images to demonstrate batch submission and GPU serialization.
-3. Open Jobs; show live progress, cancellation, retry, and durable history.
-4. Download an Artifact; inspect output dimensions, model snapshot, and hashes.
-5. Queue a short video with `interpolate_upscale`; verify doubled FPS and retained audio.
-6. Open Models; show the read-only warehouse paths and checksums.
-7. Close with the architecture diagram and explain the outbox and retention decisions.
+1. Open Showcase; identify the four CUDA-validated model families and RTX 5080 evidence.
+2. Use Face Lab to compare GFPGAN, CodeFormer, and the complete 2× pipeline.
+3. Run a recorded flow and inspect its Job timeline, Artifact hashes and model snapshot.
+4. Open the partial-failure Batch and replay failed-item retry lineage.
+5. Compare RIFE 24/48 FPS and the RIFE → Real-ESRGAN combined video with audio.
+6. Open Models and System to show all seven checksums and the recorded local stack.
+7. Close with the outbox, one-GPU-owner and provenance architecture decisions.
 
 Use non-sensitive sample data and keep clips under five seconds for a reliable
 three-minute interview walkthrough. A timed narration is provided in
@@ -256,8 +267,8 @@ files and weights remain governed by their upstream licenses. See
 
 - Real CUDA adapters: implemented and locally validated.
 - Durable API/queue/history/artifacts: implemented and end-to-end validated.
-- React production build and GitHub Pages demo: implemented.
+- React Showcase, full workflow replay and GitHub Pages demo: implemented.
 - Automated suite: Python unit/integration, React component, and Playwright journeys.
 - Real GPU release smoke: GFPGAN, CodeFormer, Real-ESRGAN, RIFE, and combined video.
-- Remaining production work: authentication, object storage, and larger benchmarks.
+- Remaining production work: authentication, object storage, and multi-node scheduling.
 <!-- portfolio-release-notes:end -->

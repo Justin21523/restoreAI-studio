@@ -1,0 +1,113 @@
+{
+  "generated_at": "2026-07-10T12:21:06.663097+00:00",
+  "environment": {
+    "gpu": "NVIDIA GeForce RTX 5080",
+    "driver": "595.71.05",
+    "vram_mib": 16303,
+    "compute_capability": "12.0",
+    "cuda": "13.0",
+    "pytorch": "2.9.1+cu130",
+    "fp16": true,
+    "python": "3.10.18",
+    "platform": "Linux-6.17.0-38-generic-x86_64-with-glibc2.39"
+  },
+  "models": [
+    {
+      "model_id": "realesrgan-x4plus",
+      "family": "super_resolution",
+      "path": "/mnt/c/ai_models/vision/upscale/RealESRGAN_x4plus.pth",
+      "sha256": "4fa0d38905f75ac06eb49a7951b426670021be3018265fd191d2125df9d682f1",
+      "size_bytes": 67040989,
+      "valid": true
+    },
+    {
+      "model_id": "realesrgan-x2plus",
+      "family": "super_resolution",
+      "path": "/mnt/c/ai_models/vision/upscale/RealESRGAN_x2plus.pth",
+      "sha256": "49fafd45f8fd7aa8d31ab2a22d14d91b536c34494a5cfe31eb5d89c2fa266abb",
+      "size_bytes": 67061725,
+      "valid": true
+    },
+    {
+      "model_id": "gfpgan-v1.4",
+      "family": "face_restoration",
+      "path": "/mnt/c/ai_models/vision/face_restore/GFPGAN/GFPGANv1.4.pth",
+      "sha256": "e2cd4703ab14f4d01fd1383a8a8b266f9a5833dacee8e6a79d3bf21a1b6be5ad",
+      "size_bytes": 348632874,
+      "valid": true
+    },
+    {
+      "model_id": "codeformer",
+      "family": "face_restoration",
+      "path": "/mnt/c/ai_models/vision/face_restore/Codeformer/codeformer.pth",
+      "sha256": "1009e537e0c2a07d4cabce6355f53cb66767cd4b4297ec7a4a64ca4b8a5684b7",
+      "size_bytes": 376637898,
+      "valid": true
+    },
+    {
+      "model_id": "rife-v4.25",
+      "family": "frame_interpolation",
+      "path": "/mnt/c/ai_models/vision/flow/rife_v4.25/flownet.pkl",
+      "sha256": "6615790efd627772917205db291f51cd392528a157ecbb2ecaeec3bff8eb6de2",
+      "size_bytes": 24636301,
+      "valid": true
+    },
+    {
+      "model_id": "facelib-detector",
+      "family": "face_support",
+      "path": "/mnt/c/ai_models/vision/face_restore/facelib/detection_Resnet50_Final.pth",
+      "sha256": "6d1de9c2944f2ccddca5f5e010ea5ae64a39845a86311af6fdf30841b0a5a16d",
+      "size_bytes": 109497761,
+      "valid": true
+    },
+    {
+      "model_id": "facelib-parser",
+      "family": "face_support",
+      "path": "/mnt/c/ai_models/vision/face_restore/facelib/parsing_parsenet.pth",
+      "sha256": "3d558d8d0e42c20224f13cf5a29c79eba2d59913419f945545d8cf7b72920de2",
+      "size_bytes": 85331193,
+      "valid": true
+    }
+  ],
+  "benchmarks": {
+    "method": "one cold run plus median of three warm end-to-end runs; null means the warm run was skipped due shared GPU contention",
+    "runs": [
+      {
+        "id": "gfpgan-face",
+        "cold_ms": 1865.99,
+        "warm_median_ms": null,
+        "peak_vram_mib": 1078.6
+      },
+      {
+        "id": "codeformer-face",
+        "cold_ms": 888.74,
+        "warm_median_ms": 123.58,
+        "peak_vram_mib": 1084.9
+      },
+      {
+        "id": "realesrgan-x4",
+        "cold_ms": 242.7,
+        "warm_median_ms": 83.93,
+        "peak_vram_mib": 599.6
+      },
+      {
+        "id": "rife-24-to-48",
+        "cold_ms": 1425.81,
+        "warm_median_ms": 1372.29,
+        "peak_vram_mib": 315.6
+      },
+      {
+        "id": "rife-realesrgan-combined",
+        "cold_ms": 1235.08,
+        "warm_median_ms": 1022.84,
+        "peak_vram_mib": 110.5
+      }
+    ]
+  },
+  "verification": {
+    "model_root": "/mnt/c/ai_models",
+    "valid_models": 7,
+    "invalid_models": 0,
+    "method": "manifest path + size + SHA-256"
+  }
+}

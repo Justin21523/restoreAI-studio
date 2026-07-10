@@ -3,6 +3,7 @@ import { initReactI18next } from "react-i18next";
 
 const en = {
   nav: {
+    showcase: "Showcase",
     workspace: "Workspace",
     jobs: "Jobs",
     models: "Models",
@@ -50,6 +51,10 @@ const en = {
     demoNote: "Precomputed locally with the model and checksum shown below.",
     demoScenario: "Demo scenario",
     realOnly: "This detail view is available in local real mode.",
+    inspectArtifact: "Inspect Job & Artifact",
+    mediaType: "Media type",
+    fidelity: "CodeFormer fidelity",
+    strength: "GFPGAN strength",
     superResolution: "Super-resolution",
     faceRestore: "Face restoration",
     faceUpscale: "Face + upscale",
@@ -62,6 +67,8 @@ const en = {
     eyebrow: "Durable processing history",
     empty: "No jobs yet.",
     refreshing: "Refreshing…",
+    inspect: "Inspect",
+    batchReplay: "Batch partial failure replay",
   },
   detail: {
     job: "Job detail",
@@ -75,6 +82,11 @@ const en = {
     batchProgress: "Batch progress",
     failedOnly: "Retry failed",
     noPreview: "Preview is not available for this state.",
+    playbackSpeed: "Playback speed",
+    modelOutput: "Model output",
+    completePipeline: "Complete pipeline",
+    replayNotice:
+      "Recorded from a verified local GPU run; interactions replay the durable workflow.",
   },
   models: { title: "Models", eyebrow: "Read-only model registry" },
   system: {
@@ -86,11 +98,49 @@ const en = {
     storage: "Storage",
     database: "Database",
     redis: "Redis",
+    recordedAt: "Evidence captured",
+    snapshotNote:
+      "This is a recorded local stack snapshot. GitHub Pages itself is static and does not claim a live GPU.",
+  },
+  showcase: {
+    eyebrow: "Verified AI restoration platform",
+    title: "Four real models. One production-shaped workflow.",
+    intro:
+      "Inspect real RTX 5080 outputs, durable Jobs, batch recovery, Artifact provenance and the architecture behind every result.",
+    openLab: "Open interactive lab",
+    inspectJob: "Inspect a verified Job",
+    modelsVerified: "model files verified",
+    modelProof: "Verified model families",
+    cudaValidated: "CUDA validated",
+    realResults: "Real precomputed GPU evidence",
+    fourWorkflows: "See exactly what each model contributes.",
+    tryFlow: "Open workflow",
+    benchmark: "RTX 5080 benchmark",
+    measuredNotEstimated: "Measured end-to-end, not estimated.",
+    benchmarkMethod:
+      "One cold run plus the median of three warm end-to-end runs.",
+    pipeline: "Pipeline",
+    coldRun: "Cold run",
+    warmMedian: "Warm median",
+    peakVram: "Peak VRAM",
+    contended: "Cold run verified",
+    architecture: "Engineering depth",
+    productPipeline: "From upload to auditable Artifact.",
+    outbox: "Transactional outbox",
+    outboxCopy:
+      "PostgreSQL records intent before Redis dispatch, so queue outages do not lose Jobs.",
+    gpuOwner: "One GPU owner",
+    gpuOwnerCopy:
+      "RQ serializes inference to keep VRAM use predictable on a single workstation GPU.",
+    provenance: "Artifact provenance",
+    provenanceCopy:
+      "Every output retains input/output hashes, parameters, timings and exact model snapshots.",
   },
 };
 
 const zh = {
   nav: {
+    showcase: "成果展示",
     workspace: "工作區",
     jobs: "工作紀錄",
     models: "模型",
@@ -138,6 +188,10 @@ const zh = {
     demoNote: "此結果由本機模型預先產生，模型與雜湊資訊如下。",
     demoScenario: "展示情境",
     realOnly: "此詳情頁僅在本機真實模式提供。",
+    inspectArtifact: "檢視工作與輸出證據",
+    mediaType: "媒體類型",
+    fidelity: "CodeFormer 保真度",
+    strength: "GFPGAN 修復強度",
     superResolution: "超解析",
     faceRestore: "人臉修復",
     faceUpscale: "人臉修復＋超解析",
@@ -150,6 +204,8 @@ const zh = {
     eyebrow: "可持久化的處理歷史",
     empty: "目前沒有工作。",
     refreshing: "更新中…",
+    inspect: "檢視",
+    batchReplay: "批次部分失敗重播",
   },
   detail: {
     job: "工作詳情",
@@ -163,6 +219,10 @@ const zh = {
     batchProgress: "批次進度",
     failedOnly: "只重試失敗項目",
     noPreview: "此狀態目前沒有可預覽結果。",
+    playbackSpeed: "播放速度",
+    modelOutput: "模型輸出",
+    completePipeline: "完整流程",
+    replayNotice: "此資料來自已驗證的本機 GPU 執行；互動重播可持久化工作流程。",
   },
   models: { title: "模型", eyebrow: "唯讀模型註冊表" },
   system: {
@@ -174,6 +234,40 @@ const zh = {
     storage: "儲存空間",
     database: "資料庫",
     redis: "Redis",
+    recordedAt: "證據擷取時間",
+    snapshotNote:
+      "這是本機完整服務的錄製快照；GitHub Pages 為靜態網站，不宣稱具有即時 GPU。",
+  },
+  showcase: {
+    eyebrow: "經實機驗證的 AI 修復平台",
+    title: "四個真實模型，一套完整工作流程。",
+    intro:
+      "直接檢視 RTX 5080 真實輸出、可持久化工作、批次恢復、Artifact 證據與背後架構。",
+    openLab: "開啟互動實驗室",
+    inspectJob: "檢視已驗證工作",
+    modelsVerified: "個模型檔案已驗證",
+    modelProof: "已驗證模型家族",
+    cudaValidated: "CUDA 實機驗證",
+    realResults: "真實預運算 GPU 證據",
+    fourWorkflows: "清楚看見每個模型的實際貢獻。",
+    tryFlow: "開啟流程",
+    benchmark: "RTX 5080 效能基準",
+    measuredNotEstimated: "端到端實測，不是推估數據。",
+    benchmarkMethod: "一次冷啟動，搭配三次暖機端到端執行的中位數。",
+    pipeline: "處理流程",
+    coldRun: "冷啟動",
+    warmMedian: "暖機中位數",
+    peakVram: "VRAM 峰值",
+    contended: "冷啟動已驗證",
+    architecture: "工程深度",
+    productPipeline: "從上傳到可稽核輸出。",
+    outbox: "交易式 Outbox",
+    outboxCopy:
+      "先由 PostgreSQL 保存意圖再派送 Redis，Queue 中斷也不會遺失工作。",
+    gpuOwner: "單一 GPU 擁有者",
+    gpuOwnerCopy: "RQ 將推論序列化，讓單機 GPU 的 VRAM 使用可預測。",
+    provenance: "輸出來源證據",
+    provenanceCopy: "每個結果保留輸入／輸出雜湊、參數、時間與精確模型快照。",
   },
 };
 

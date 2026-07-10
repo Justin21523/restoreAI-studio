@@ -108,10 +108,15 @@ export function ImageComparison({
   return (
     <div className="comparison-shell">
       <div className="comparison-toolbar">
-        <button onClick={() => setZoom(Math.max(1, zoom - 0.25))}>−</button>
+        <button type="button" onClick={() => setZoom(Math.max(1, zoom - 0.25))}>
+          −
+        </button>
         <span>{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom(Math.min(2, zoom + 0.25))}>+</button>
+        <button type="button" onClick={() => setZoom(Math.min(2, zoom + 0.25))}>
+          +
+        </button>
         <button
+          type="button"
           onClick={() => {
             setZoom(1);
             setPosition(50);
@@ -149,13 +154,18 @@ export function ImageComparison({
 export function VideoComparison({
   before,
   after,
+  beforeLabel,
+  afterLabel,
 }: {
   before: string;
   after: string;
+  beforeLabel?: string;
+  afterLabel?: string;
 }) {
   const { t } = useTranslation();
   const first = useRef<HTMLVideoElement>(null);
   const second = useRef<HTMLVideoElement>(null);
+  const [speed, setSpeed] = useState(1);
   function play() {
     void first.current?.play();
     void second.current?.play();
@@ -172,29 +182,88 @@ export function VideoComparison({
     )
       second.current.currentTime = first.current.currentTime;
   }
+  function changeSpeed(value: number) {
+    setSpeed(value);
+    if (first.current) first.current.playbackRate = value;
+    if (second.current) second.current.playbackRate = value;
+  }
   return (
-    <div className="video-comparison">
-      <figure>
-        <video
-          ref={first}
-          src={before}
-          controls
-          onPlay={play}
-          onPause={pause}
-          onTimeUpdate={sync}
-        />
-        <figcaption>{t("common.input")}</figcaption>
-      </figure>
-      <figure>
-        <video
-          ref={second}
-          src={after}
-          controls
-          onPlay={play}
-          onPause={pause}
-        />
-        <figcaption>{t("common.output")}</figcaption>
-      </figure>
+    <div className="video-shell">
+      <div className="playback-toolbar" aria-label={t("detail.playbackSpeed")}>
+        <span>{t("detail.playbackSpeed")}</span>
+        {[0.25, 0.5, 1].map((value) => (
+          <button
+            type="button"
+            className={speed === value ? "active" : ""}
+            key={value}
+            onClick={() => changeSpeed(value)}
+          >
+            {value}×
+          </button>
+        ))}
+      </div>
+      <div className="video-comparison">
+        <figure>
+          <video
+            ref={first}
+            src={before}
+            controls
+            preload="metadata"
+            onPlay={play}
+            onPause={pause}
+            onTimeUpdate={sync}
+          />
+          <figcaption>{beforeLabel ?? t("common.input")}</figcaption>
+        </figure>
+        <figure>
+          <video
+            ref={second}
+            src={after}
+            controls
+            preload="metadata"
+            onPlay={play}
+            onPause={pause}
+          />
+          <figcaption>{afterLabel ?? t("common.output")}</figcaption>
+        </figure>
+      </div>
+    </div>
+  );
+}
+
+export function ModelComparison({
+  before,
+  outputs,
+}: {
+  before: string;
+  outputs: Record<string, string>;
+}) {
+  const { t } = useTranslation();
+  const choices = Object.keys(outputs);
+  const [selected, setSelected] = useState(
+    choices.includes("restored") ? "restored" : choices[0],
+  );
+  return (
+    <div className="model-comparison">
+      <div
+        className="model-tabs"
+        role="tablist"
+        aria-label={t("detail.modelOutput")}
+      >
+        {choices.map((choice) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={choice === selected}
+            className={choice === selected ? "active" : ""}
+            key={choice}
+            onClick={() => setSelected(choice)}
+          >
+            {choice === "restored" ? t("detail.completePipeline") : choice}
+          </button>
+        ))}
+      </div>
+      <ImageComparison before={before} after={outputs[selected]} />
     </div>
   );
 }
@@ -231,6 +300,9 @@ export function Timeline({
           <div>
             <strong>{event.stage.replaceAll("_", " ")}</strong>
             <span>{event.message}</span>
+            {typeof event.payload?.duration_ms === "number" ? (
+              <small>{event.payload.duration_ms} ms</small>
+            ) : null}
             <time>{new Date(event.created_at).toLocaleString()}</time>
           </div>
           <b>{Math.round(event.progress * 100)}%</b>

@@ -25,9 +25,13 @@ def validate(root: Path) -> None:
             [
                 WEB / "src" / "App.tsx",
                 WEB / "src" / "demo-scenarios.json",
+                WEB / "src" / "demo-evidence.json",
                 WEB / "public" / "demo" / "scenarios" / "archive-portrait" / "output.png",
+                WEB / "public" / "demo" / "scenarios" / "archive-portrait" / "gfpgan.png",
+                WEB / "public" / "demo" / "scenarios" / "archive-portrait" / "codeformer.png",
                 WEB / "public" / "demo" / "scenarios" / "product-detail" / "output.png",
                 WEB / "public" / "demo" / "scenarios" / "city-motion" / "output.mp4",
+                WEB / "public" / "demo" / "scenarios" / "combined-video" / "output.mp4",
                 ROOT / "package.json",
                 ROOT / "vite.config.ts",
             ]
@@ -39,6 +43,7 @@ def validate(root: Path) -> None:
                 DIST / "demo" / "scenarios" / "archive-portrait" / "output.png",
                 DIST / "demo" / "scenarios" / "product-detail" / "output.png",
                 DIST / "demo" / "scenarios" / "city-motion" / "output.mp4",
+                DIST / "demo" / "scenarios" / "combined-video" / "output.mp4",
             ]
         )
     missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]

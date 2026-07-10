@@ -24,11 +24,14 @@ const job = {
 test("real mode renders API-backed job history", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "real");
   await page.route("**/api/v1/jobs", (route) => route.fulfill({ json: [job] }));
-  await page.goto("/");
+  await page.goto("/#/workspace");
   await page.getByLabel("Preset").selectOption("old-photo");
   await expect(page.getByLabel("Operation")).toHaveValue(
     "face_restore_upscale",
   );
+  await expect(page.getByLabel("CodeFormer fidelity")).toHaveValue("0.7");
+  await page.getByLabel("Face model").selectOption("gfpgan");
+  await expect(page.getByLabel("GFPGAN strength")).toHaveValue("0.8");
   await page.goto("/#/jobs");
   await expect(page.getByText("portrait.png")).toBeVisible();
   await expect(page.getByText("running", { exact: true })).toBeVisible();

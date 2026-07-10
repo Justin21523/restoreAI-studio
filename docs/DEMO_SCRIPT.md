@@ -1,35 +1,35 @@
 # RestorAI Studio — 3 minute portfolio demo
 
-## 0:00–0:25 — Product problem
+## 0:00–0:25 — Immediate proof
 
-Open the public Workspace. Explain that restoration tools often stop at notebooks;
-RestorAI adds durable Jobs, batch processing, provenance, expiry, and GPU back-pressure.
-Point out the `DEMO` badge: Pages serves real precomputed results, not a fake hosted GPU.
+Open Showcase. Point out Real-ESRGAN, GFPGAN, CodeFormer, and RIFE, the RTX 5080
+evidence card, seven verified model files, and the explicit recorded-GPU label.
 
-## 0:25–1:00 — Real image quality
+## 0:25–1:00 — Face restoration choices
 
-Select Archive portrait. Drag the Before/After control across the face, show the
-single detected face, CodeFormer and Real-ESRGAN checksums, dimensions, and measured
-time. Switch to Product detail and zoom into metal, leather, and wood texture.
+Open Face Lab. Use the output tabs and Before/After slider to compare GFPGAN,
+CodeFormer, and CodeFormer + Real-ESRGAN 2× on the same input. Explain fidelity,
+strength, detected-face count, peak VRAM, full model SHA, and Artifact SHA.
 
-## 1:00–1:30 — Video
+## 1:00–1:30 — Motion and combined video
 
-Select City motion. Start both synchronized players and compare 24 versus 48 FPS.
-Show that the three-second output retains audio and identify RIFE v4.25.
+Open 24 → 48 FPS Motion and use 0.25× playback to make interpolation visible.
+Then show RIFE → Real-ESRGAN: FPS and resolution both double while audio remains.
 
-## 1:30–2:15 — Local real workflow
+## 1:30–2:10 — Product-shaped workflow
 
-Switch to local Real Mode. Queue two images, open Batch Detail, and show serialized
-GPU work. Open a Job Detail page to show live SSE events, input/output comparison,
-parameters, hashes, model snapshot, expiry, download, cancel, and retry.
+Run the recorded pipeline and open Job Detail. Show named stages, durations,
+parameters, model snapshot, input/output hashes and download. Open Jobs, select the
+partial-failure Batch, retry the failed item, and show `retry_of_batch_id`.
 
-## 2:15–2:40 — Operations
+## 2:10–2:40 — Real local operations
 
-Open System. Show PostgreSQL and Redis readiness, RQ queue depth, worker state,
-RTX 5080 VRAM, storage capacity, and seven verified models under `/mnt/c/ai_models`.
+Open Models and System. Explain that Pages is static while the snapshot records the
+real PostgreSQL, Redis/RQ, RTX 5080 worker, local Artifact storage and seven models
+under `/mnt/c/ai_models`. In local Real mode, submit one actual file if time permits.
 
 ## 2:40–3:00 — Engineering close
 
-Show the architecture diagram. Explain the PostgreSQL outbox, one-GPU-owner policy,
-RIFE-before-upscale decision, 24-hour file retention, metadata preservation, and
-separation between a safe public Demo and the local CUDA environment.
+Return to Showcase architecture. Explain transactional outbox recovery, one GPU
+owner, RIFE-before-upscale, 24-hour file retention, persistent metadata, and why the
+public Demo uses transparent evidence replay instead of an unsafe open GPU endpoint.

@@ -14,20 +14,197 @@ import {
   ImageComparison,
   JobRow,
   JsonGrid,
+  ModelComparison,
   Timeline,
   VideoComparison,
 } from "./components";
-import { demoScenarios, presets } from "./demo";
+import {
+  allDemoJobs,
+  demoBatch,
+  demoEvidence,
+  demoJobs,
+  demoScenarioForJob,
+  demoScenarios,
+  failedDemoJob,
+  presets,
+} from "./demo";
 import type {
   Batch,
   DemoScenario,
   Job,
-  JobEvent,
   ModelStatus,
   SystemStatus,
 } from "./types";
 
 export const appMode = import.meta.env.VITE_APP_MODE ?? "demo";
+
+function localized(value: { en: string; zh: string }, language: string) {
+  return value[language.startsWith("zh") ? "zh" : "en"];
+}
+
+export function Showcase() {
+  const { t, i18n } = useTranslation();
+  const buildSha = import.meta.env.VITE_BUILD_SHA ?? "local";
+  const decisions = [
+    [t("showcase.outbox"), t("showcase.outboxCopy")],
+    [t("showcase.gpuOwner"), t("showcase.gpuOwnerCopy")],
+    [t("showcase.provenance"), t("showcase.provenanceCopy")],
+  ];
+  return (
+    <main className="showcase">
+      <section className="showcase-hero">
+        <div>
+          <p className="eyebrow">{t("showcase.eyebrow")}</p>
+          <h1>{t("showcase.title")}</h1>
+          <p className="showcase-intro">{t("showcase.intro")}</p>
+          <div className="hero-actions">
+            <Link className="primary-link" to="/workspace">
+              {t("showcase.openLab")}
+            </Link>
+            <Link className="secondary-link" to="/jobs/demo-face-lab">
+              {t("showcase.inspectJob")}
+            </Link>
+          </div>
+        </div>
+        <div className="proof-card panel">
+          <Badge status="verified" />
+          <strong>{demoEvidence.environment.gpu}</strong>
+          <span>
+            CUDA {demoEvidence.environment.cuda} · PyTorch{" "}
+            {demoEvidence.environment.pytorch}
+          </span>
+          <span>
+            {demoEvidence.verification.valid_models}/7{" "}
+            {t("showcase.modelsVerified")}
+          </span>
+          <code>{demoEvidence.verification.model_root}</code>
+        </div>
+      </section>
+
+      <section
+        className="model-proof-strip"
+        aria-label={t("showcase.modelProof")}
+      >
+        {["Real-ESRGAN", "GFPGAN", "CodeFormer", "RIFE v4.25"].map((model) => (
+          <div key={model}>
+            <i />
+            <strong>{model}</strong>
+            <span>{t("showcase.cudaValidated")}</span>
+          </div>
+        ))}
+      </section>
+
+      <section className="showcase-section">
+        <div className="section-heading">
+          <p className="eyebrow">{t("showcase.realResults")}</p>
+          <h2>{t("showcase.fourWorkflows")}</h2>
+        </div>
+        <div className="scenario-grid">
+          {demoScenarios.map((scenario) => (
+            <article className="scenario-card panel" key={scenario.id}>
+              {scenario.kind === "image" ? (
+                <img
+                  loading="eager"
+                  src={scenario.outputs[scenario.default_output]}
+                  alt={localized(scenario.title, i18n.language)}
+                />
+              ) : (
+                <video
+                  src={scenario.outputs[scenario.default_output]}
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                />
+              )}
+              <div>
+                <Badge status="gpu-verified" />
+                <h3>{localized(scenario.title, i18n.language)}</h3>
+                <p>{localized(scenario.description, i18n.language)}</p>
+                <div className="metric-pills">
+                  <span>{String(scenario.metrics.output)}</span>
+                  <span>{scenario.metrics.elapsed_ms} ms</span>
+                </div>
+                <Link to={`/workspace?scenario=${scenario.id}`}>
+                  {t("showcase.tryFlow")} →
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="showcase-section benchmark-section">
+        <div className="section-heading">
+          <p className="eyebrow">{t("showcase.benchmark")}</p>
+          <h2>{t("showcase.measuredNotEstimated")}</h2>
+          <p>{t("showcase.benchmarkMethod")}</p>
+        </div>
+        <div className="panel benchmark-table" role="table">
+          <div className="benchmark-head" role="row">
+            <strong>{t("showcase.pipeline")}</strong>
+            <strong>{t("showcase.coldRun")}</strong>
+            <strong>{t("showcase.warmMedian")}</strong>
+            <strong>{t("showcase.peakVram")}</strong>
+          </div>
+          {demoEvidence.benchmarks.runs.map((run) => (
+            <div role="row" key={run.id}>
+              <span>{run.id}</span>
+              <span>{run.cold_ms} ms</span>
+              <span>
+                {run.warm_median_ms === null
+                  ? t("showcase.contended")
+                  : `${run.warm_median_ms} ms`}
+              </span>
+              <span>{run.peak_vram_mib} MiB</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="showcase-section architecture-section">
+        <div className="section-heading">
+          <p className="eyebrow">{t("showcase.architecture")}</p>
+          <h2>{t("showcase.productPipeline")}</h2>
+        </div>
+        <div
+          className="architecture-flow"
+          aria-label={t("showcase.productPipeline")}
+        >
+          {[
+            "React",
+            "FastAPI",
+            "PostgreSQL\nOutbox",
+            "Redis / RQ",
+            "GPU Worker",
+            "Artifact",
+          ].map((node, index) => (
+            <div key={node}>
+              <span>{node}</span>
+              {index < 5 ? <b aria-hidden="true">→</b> : null}
+            </div>
+          ))}
+        </div>
+        <div className="decision-grid">
+          {decisions.map(([title, copy]) => (
+            <article className="panel" key={title}>
+              <h3>{title}</h3>
+              <p>{copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <footer className="portfolio-footer">
+        <span>Portfolio build · {buildSha.slice(0, 12)}</span>
+        <a href="https://github.com/Justin21523/restoreAI-studio">GitHub</a>
+        <a href="https://github.com/Justin21523/restoreAI-studio/blob/main/README.md">
+          Case study
+        </a>
+      </footer>
+    </main>
+  );
+}
 
 function DemoPanel({
   scenario,
@@ -37,33 +214,62 @@ function DemoPanel({
   progress: number;
 }) {
   const { i18n, t } = useTranslation();
-  const locale = i18n.language.startsWith("zh") ? "zh" : "en";
+  const completedEvents = scenario.events.filter(
+    (item) => item.progress <= progress,
+  );
   return (
     <div className="demo-panel">
       <div className="demo-copy">
-        <Badge status="precomputed" />
-        <h2>{scenario.title[locale]}</h2>
-        <p>{scenario.description[locale]}</p>
+        <Badge status="recorded-gpu" />
+        <h2>{localized(scenario.title, i18n.language)}</h2>
+        <p>{localized(scenario.description, i18n.language)}</p>
       </div>
       {scenario.kind === "image" ? (
-        <ImageComparison before={scenario.input} after={scenario.output} />
+        Object.keys(scenario.outputs).length > 1 ? (
+          <ModelComparison before={scenario.input} outputs={scenario.outputs} />
+        ) : (
+          <ImageComparison
+            before={scenario.input}
+            after={scenario.outputs[scenario.default_output]}
+          />
+        )
       ) : (
-        <VideoComparison before={scenario.input} after={scenario.output} />
+        <VideoComparison
+          before={scenario.input}
+          after={scenario.outputs[scenario.default_output]}
+          beforeLabel={String(scenario.metrics.input)}
+          afterLabel={String(scenario.metrics.output)}
+        />
       )}
       <div className="pipeline-progress">
         <i style={{ width: `${progress * 100}%` }} />
       </div>
-      <p className="fine-print">{t("workspace.demoNote")}</p>
-      <div className="demo-metadata">
-        <JsonGrid
-          value={{
-            model: scenario.model,
-            operation: scenario.operation,
-            ...scenario.parameters,
-            ...scenario.metrics,
-          }}
-        />
+      <div className="stage-replay" aria-live="polite">
+        {completedEvents.map((event) => (
+          <div key={event.id}>
+            <i />
+            <span>{event.stage.replaceAll("_", " ")}</span>
+            <small>{event.message}</small>
+            <b>{event.duration_ms} ms</b>
+          </div>
+        ))}
       </div>
+      <p className="fine-print">{t("workspace.demoNote")}</p>
+      <JsonGrid
+        value={{
+          model: scenario.model,
+          ...scenario.parameters,
+          ...scenario.metrics,
+        }}
+      />
+      {progress === 1 ? (
+        <Link
+          className="primary-link demo-detail-link"
+          to={`/jobs/${scenario.job_id}`}
+        >
+          {t("workspace.inspectArtifact")}
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -78,6 +284,8 @@ export function Workspace() {
   const [operation, setOperation] = useState("upscale");
   const [scale, setScale] = useState("2");
   const [faceMethod, setFaceMethod] = useState("codeformer");
+  const [strength, setStrength] = useState("0.8");
+  const [fidelity, setFidelity] = useState("0.7");
   const [targetFps, setTargetFps] = useState("60");
   const [preset, setPreset] = useState("custom");
   const [scenarioId, setScenarioId] = useState(
@@ -96,13 +304,8 @@ export function Workspace() {
       files.length > 1 ? api.submitBatch(kind, form) : api.submit(kind, form),
     onSuccess: (result: Job | Batch) => {
       void queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      if ("total_items" in result) {
-        setMessage(t("workspace.batchQueued"));
-        navigate(`/batches/${result.id}`);
-      } else {
-        setMessage(t("workspace.queued"));
-        navigate(`/jobs/${result.id}`);
-      }
+      if ("total_items" in result) navigate(`/batches/${result.id}`);
+      else navigate(`/jobs/${result.id}`);
     },
   });
 
@@ -134,9 +337,9 @@ export function Workspace() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (appMode === "demo") {
-      setDemoProgress(0.04);
+      setDemoProgress(0);
       for (const item of scenario.events) {
-        await new Promise((resolve) => window.setTimeout(resolve, 300));
+        await new Promise((resolve) => window.setTimeout(resolve, 260));
         setDemoProgress(item.progress);
       }
       return;
@@ -151,12 +354,19 @@ export function Workspace() {
     );
     form.append("operation", operation);
     form.append("scale", scale);
-    if (kind === "image") form.append("face_method", faceMethod);
+    if (kind === "image") {
+      form.append("face_method", faceMethod);
+      form.append("strength", strength);
+      form.append("fidelity", fidelity);
+    }
     if (kind === "video" && operation !== "upscale")
       form.append("target_fps", targetFps);
     mutation.mutate(form);
   }
   const running = mutation.isPending || (demoProgress > 0 && demoProgress < 1);
+  const faceOperation = kind === "image" && operation !== "upscale";
+  const scaleOperation =
+    operation.includes("upscale") || operation === "upscale";
   return (
     <main className="workspace">
       <section className="hero-copy">
@@ -179,18 +389,16 @@ export function Workspace() {
                   setDemoProgress(0);
                 }}
               >
-                <option value="archive-portrait">
-                  Archive portrait / 老照片人像
-                </option>
-                <option value="product-detail">
-                  Product detail / 產品細節
-                </option>
-                <option value="city-motion">City motion / 城市動態</option>
+                {demoScenarios.map((item) => (
+                  <option value={item.id} key={item.id}>
+                    {localized(item.title, i18n.language)}
+                  </option>
+                ))}
               </select>
             </label>
           ) : (
             <>
-              <div className="segmented" aria-label="Media type">
+              <div className="segmented" aria-label={t("workspace.mediaType")}>
                 <button
                   type="button"
                   className={kind === "image" ? "active" : ""}
@@ -226,6 +434,16 @@ export function Workspace() {
                   )}
                 </span>
               </label>
+              {files.length ? (
+                <ul className="selected-files">
+                  {files.map((file) => (
+                    <li key={`${file.name}-${file.size}`}>
+                      <span>{file.name}</span>
+                      <small>{formatBytes(file.size)}</small>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               <label className="wide-control">
                 {t("workspace.preset")}
                 <select
@@ -277,17 +495,19 @@ export function Workspace() {
                     )}
                   </select>
                 </label>
-                <label>
-                  {t("workspace.scale")}
-                  <select
-                    value={scale}
-                    onChange={(event) => setScale(event.target.value)}
-                  >
-                    <option value="2">2×</option>
-                    <option value="4">4×</option>
-                  </select>
-                </label>
-                {kind === "image" && operation !== "upscale" ? (
+                {scaleOperation ? (
+                  <label>
+                    {t("workspace.scale")}
+                    <select
+                      value={scale}
+                      onChange={(event) => setScale(event.target.value)}
+                    >
+                      <option value="2">2×</option>
+                      <option value="4">4×</option>
+                    </select>
+                  </label>
+                ) : null}
+                {faceOperation ? (
                   <label>
                     {t("workspace.faceModel")}
                     <select
@@ -297,6 +517,34 @@ export function Workspace() {
                       <option value="codeformer">CodeFormer</option>
                       <option value="gfpgan">GFPGAN</option>
                     </select>
+                  </label>
+                ) : null}
+                {faceOperation && faceMethod === "codeformer" ? (
+                  <label>
+                    {t("workspace.fidelity")} · {fidelity}
+                    <input
+                      aria-label={t("workspace.fidelity")}
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={fidelity}
+                      onChange={(event) => setFidelity(event.target.value)}
+                    />
+                  </label>
+                ) : null}
+                {faceOperation && faceMethod === "gfpgan" ? (
+                  <label>
+                    {t("workspace.strength")} · {strength}
+                    <input
+                      aria-label={t("workspace.strength")}
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={strength}
+                      onChange={(event) => setStrength(event.target.value)}
+                    />
                   </label>
                 ) : null}
                 {kind === "video" && operation !== "upscale" ? (
@@ -338,14 +586,14 @@ export function Workspace() {
 }
 
 export function History() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const jobs = useQuery({
     queryKey: ["jobs"],
     queryFn: api.jobs,
     enabled: appMode === "real",
     refetchInterval: 1500,
   });
-  const locale = i18n.language.startsWith("zh") ? "zh" : "en";
+  const demoRows = [...demoJobs, failedDemoJob];
   return (
     <main className="page">
       <div className="page-title">
@@ -355,18 +603,39 @@ export function History() {
         </div>
         {jobs.isFetching && <span>{t("jobs.refreshing")}</span>}
       </div>
+      {appMode === "demo" ? (
+        <Link className="batch-callout panel" to={`/batches/${demoBatch.id}`}>
+          <span>
+            <Badge status="partial-failure" />{" "}
+            <strong>{t("jobs.batchReplay")}</strong>
+          </span>
+          <span>3 items · 2 succeeded · 1 failed →</span>
+        </Link>
+      ) : null}
       <section className="panel job-list">
         {appMode === "demo" ? (
-          demoScenarios.map((item) => (
-            <article className="demo-job" key={item.id}>
+          demoRows.map((job) => (
+            <article className="job-row" key={job.id}>
               <div>
-                <Badge status="succeeded" />
-                <h2>{item.title[locale]}</h2>
-                <p>{item.model}</p>
+                <Link to={`/jobs/${job.id}`}>
+                  <strong>{job.original_filename}</strong>
+                </Link>
+                <span>
+                  {job.operation.replaceAll("_", " ")} · {job.stage}
+                </span>
               </div>
-              <Link className="small-button" to={`/?scenario=${item.id}`}>
-                Demo
+              <div className="job-progress">
+                <i style={{ width: `${job.progress * 100}%` }} />
+              </div>
+              <Badge status={job.status} />
+              <Link className="small-button" to={`/jobs/${job.id}`}>
+                {t("jobs.inspect")}
               </Link>
+              {job.error_code ? (
+                <small className="job-error">
+                  {job.error_code} · {job.error_message}
+                </small>
+              ) : null}
             </article>
           ))
         ) : jobs.isError ? (
@@ -386,6 +655,7 @@ export function JobDetail() {
   const navigate = useNavigate();
   const { jobId = "" } = useParams();
   const queryClient = useQueryClient();
+  const [retryCount, setRetryCount] = useState(0);
   const job = useQuery({
     queryKey: ["job", jobId],
     queryFn: () => api.job(jobId),
@@ -410,28 +680,28 @@ export function JobDetail() {
       if (!result) navigate("/jobs");
     },
   });
-  if (appMode === "demo")
-    return (
-      <main className="page">
-        <p className="empty">{t("workspace.realOnly")}</p>
-      </main>
-    );
-  if (job.isLoading)
+  const item =
+    appMode === "demo"
+      ? allDemoJobs.find((candidate) => candidate.id === jobId)
+      : job.data;
+  if (appMode === "real" && job.isLoading)
     return (
       <main className="page">
         <p>{t("common.loading")}</p>
       </main>
     );
-  if (!job.data || job.isError)
+  if (!item || (appMode === "real" && job.isError))
     return (
       <main className="page">
         <p className="error">{job.error?.message ?? t("common.noData")}</p>
       </main>
     );
-  const item = job.data;
   const artifact = item.artifact;
-  const preview =
-    artifact && !artifact.deleted_at && item.status === "succeeded";
+  const scenario = demoScenarioForJob(item.id);
+  const before = scenario?.input ?? api.input(item.id);
+  const after =
+    scenario?.outputs[scenario.default_output] ??
+    (artifact ? api.download(artifact.id) : "");
   return (
     <main className="page detail-page">
       <div className="page-title">
@@ -442,43 +712,68 @@ export function JobDetail() {
         </div>
         <Badge status={item.status} />
       </div>
-      {preview ? (
+      {appMode === "demo" ? (
+        <div className="replay-notice">
+          <Badge status="recorded-replay" /> {t("detail.replayNotice")}
+        </div>
+      ) : null}
+      {artifact && after ? (
         item.kind === "image" ? (
-          <ImageComparison
-            before={api.input(item.id)}
-            after={api.download(artifact.id)}
-          />
+          scenario && Object.keys(scenario.outputs).length > 1 ? (
+            <ModelComparison before={before} outputs={scenario.outputs} />
+          ) : (
+            <ImageComparison before={before} after={after} />
+          )
         ) : (
           <VideoComparison
-            before={api.input(item.id)}
-            after={api.download(artifact.id)}
+            before={before}
+            after={after}
+            beforeLabel={String(scenario?.metrics.input ?? t("common.input"))}
+            afterLabel={String(scenario?.metrics.output ?? t("common.output"))}
           />
         )
       ) : (
-        <section className="panel empty">{t("detail.noPreview")}</section>
+        <section className="panel empty">
+          <strong>{item.error_code}</strong>
+          <p>{item.error_message ?? t("detail.noPreview")}</p>
+        </section>
       )}
       <div className="detail-actions">
-        {["queued", "running", "cancelling"].includes(item.status) ? (
+        {appMode === "demo" && item.status === "failed" ? (
+          <button onClick={() => setRetryCount((value) => value + 1)}>
+            {t("common.retry")}
+          </button>
+        ) : null}
+        {appMode === "real" &&
+        ["queued", "running", "cancelling"].includes(item.status) ? (
           <button onClick={() => action.mutate("cancel")}>
             {t("common.cancel")}
           </button>
         ) : null}
-        {["failed", "cancelled"].includes(item.status) ? (
+        {appMode === "real" && ["failed", "cancelled"].includes(item.status) ? (
           <button onClick={() => action.mutate("retry")}>
             {t("common.retry")}
           </button>
         ) : null}
-        {artifact ? (
-          <>
-            <a className="primary-link" href={api.download(artifact.id)}>
-              {t("common.download")}
-            </a>
-            <button className="danger" onClick={() => action.mutate("delete")}>
-              {t("common.delete")}
-            </button>
-          </>
+        {artifact && after ? (
+          <a className="primary-link" href={after} download>
+            {t("common.download")}
+          </a>
+        ) : null}
+        {appMode === "real" && artifact ? (
+          <button className="danger" onClick={() => action.mutate("delete")}>
+            {t("common.delete")}
+          </button>
         ) : null}
       </div>
+      {retryCount ? (
+        <div className="retry-receipt panel">
+          <Badge status="failed" />
+          <strong>demo-retry-invalid-{retryCount}</strong>
+          <span>retry_of_job_id · {item.id}</span>
+          <span>INVALID_IMAGE remains actionable and auditable.</span>
+        </div>
+      ) : null}
       <div className="detail-grid">
         <section className="panel detail-card">
           <h2>{t("detail.parameters")}</h2>
@@ -499,7 +794,6 @@ export function JobDetail() {
                 size: formatBytes(artifact.size_bytes),
                 input_sha256: artifact.input_sha256,
                 output_sha256: artifact.output_sha256,
-                expires_at: new Date(artifact.expires_at).toLocaleString(),
                 models: Object.keys(artifact.model_snapshot).join(", "),
                 ...artifact.metadata_json,
               }}
@@ -509,7 +803,10 @@ export function JobDetail() {
       </div>
       <section className="panel detail-card">
         <h2>{t("detail.timeline")}</h2>
-        <Timeline events={item.events ?? []} liveUrl={api.events(item.id)} />
+        <Timeline
+          events={item.events ?? []}
+          liveUrl={appMode === "real" ? api.events(item.id) : undefined}
+        />
       </section>
     </main>
   );
@@ -520,6 +817,7 @@ export function BatchDetail() {
   const { batchId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [retried, setRetried] = useState(false);
   const batch = useQuery({
     queryKey: ["batch", batchId],
     queryFn: () => api.batch(batchId),
@@ -534,13 +832,8 @@ export function BatchDetail() {
       if (result.id !== batchId) navigate(`/batches/${result.id}`);
     },
   });
-  if (appMode === "demo")
-    return (
-      <main className="page">
-        <p className="empty">{t("workspace.realOnly")}</p>
-      </main>
-    );
-  if (!batch.data)
+  const item = appMode === "demo" ? demoBatch : batch.data;
+  if (!item)
     return (
       <main className="page">
         <p className={batch.isError ? "error" : "empty"}>
@@ -548,7 +841,6 @@ export function BatchDetail() {
         </p>
       </main>
     );
-  const item = batch.data;
   const progress = item.total_items
     ? (item.succeeded_items + item.failed_items) / item.total_items
     : 0;
@@ -558,10 +850,15 @@ export function BatchDetail() {
         <div>
           <Link to="/jobs">← {t("common.back")}</Link>
           <p className="eyebrow">{t("detail.batch")}</p>
-          <h1>{item.id.slice(0, 8)}</h1>
+          <h1>{item.id}</h1>
         </div>
         <Badge status={item.status} />
       </div>
+      {appMode === "demo" ? (
+        <div className="replay-notice">
+          <Badge status="recorded-replay" /> {t("detail.replayNotice")}
+        </div>
+      ) : null}
       <section className="panel batch-summary">
         <h2>{t("detail.batchProgress")}</h2>
         <div className="pipeline-progress">
@@ -577,22 +874,55 @@ export function BatchDetail() {
           }}
         />
         <div className="detail-actions">
-          {["queued", "running", "cancelling"].includes(item.status) ? (
+          {appMode === "demo" && item.failed_items ? (
+            <button onClick={() => setRetried(true)}>
+              {t("detail.failedOnly")}
+            </button>
+          ) : null}
+          {appMode === "real" &&
+          ["queued", "running", "cancelling"].includes(item.status) ? (
             <button onClick={() => action.mutate("cancel")}>
               {t("common.cancel")}
             </button>
           ) : null}
-          {item.failed_items > 0 ? (
+          {appMode === "real" && item.failed_items > 0 ? (
             <button onClick={() => action.mutate("retry")}>
               {t("detail.failedOnly")}
             </button>
           ) : null}
         </div>
       </section>
+      {retried ? (
+        <section className="panel retry-batch">
+          <Badge status="failed" />
+          <h2>demo-batch-retry-01</h2>
+          <JsonGrid
+            value={{
+              retry_of_batch_id: item.id,
+              total: 1,
+              failed: 1,
+              error_code: "INVALID_IMAGE",
+            }}
+          />
+        </section>
+      ) : null}
       <section className="panel job-list">
-        {item.jobs?.map((job) => (
-          <JobRow key={job.id} job={job} />
-        ))}
+        {item.jobs?.map((job) =>
+          appMode === "demo" ? (
+            <article className="demo-job" key={job.id}>
+              <div>
+                <Badge status={job.status} />
+                <h2>{job.original_filename}</h2>
+                <p>{job.error_code ?? job.operation}</p>
+              </div>
+              <Link className="small-button" to={`/jobs/${job.id}`}>
+                {t("jobs.inspect")}
+              </Link>
+            </article>
+          ) : (
+            <JobRow key={job.id} job={job} />
+          ),
+        )}
       </section>
     </main>
   );
@@ -605,19 +935,9 @@ export function Models() {
     queryFn: api.models,
     enabled: appMode === "real",
   });
-  const demoModels: ModelStatus[] = [
-    "realesrgan-x4plus",
-    "gfpgan-v1.4",
-    "codeformer",
-    "rife-v4.25",
-  ].map((model_id) => ({
-    model_id,
-    family: "demo",
-    path: "/mnt/c/ai_models/…",
+  const demoModels: ModelStatus[] = demoEvidence.models.map((model) => ({
+    ...model,
     available: true,
-    valid: true,
-    size_bytes: 0,
-    sha256: null,
     loaded: false,
     error: null,
   }));
@@ -629,17 +949,21 @@ export function Models() {
           <p className="eyebrow">{t("models.eyebrow")}</p>
           <h1>{t("models.title")}</h1>
         </div>
+        <Badge
+          status={`${rows.filter((item) => item.valid).length}-verified`}
+        />
       </div>
       <section className="model-grid">
         {rows.map((model) => (
           <article className="panel model-card" key={model.model_id}>
-            <Badge status={model.valid ? "ready" : "invalid"} />
+            <Badge status={model.valid ? "sha-verified" : "invalid"} />
             <h2>{model.model_id}</h2>
             <p>{model.family}</p>
-            <code>{model.path}</code>
-            {model.sha256 && (
-              <small>sha256 · {model.sha256.slice(0, 16)}…</small>
-            )}
+            <code title={model.path}>{model.path}</code>
+            <small>{formatBytes(model.size_bytes)}</small>
+            {model.sha256 ? (
+              <small className="model-sha">sha256 · {model.sha256}</small>
+            ) : null}
           </article>
         ))}
       </section>
@@ -657,13 +981,29 @@ export function SystemPage() {
   });
   const demo: SystemStatus = {
     status: "ready",
-    database: { status: "demo" },
-    redis: { status: "demo" },
-    queue: { queued: 0, running: 0 },
-    worker: { status: "local-only" },
-    gpu: { device_name: "RTX 5080 (local real mode)", cuda_available: true },
-    storage: { mode: "browser-only" },
-    models: { total: 7, valid: 7 },
+    database: {
+      status: "recorded-ready",
+      role: "authoritative Job store",
+      engine: "PostgreSQL 16",
+    },
+    redis: {
+      status: "recorded-ready",
+      role: "RQ dispatch",
+      persistence: "not source of truth",
+    },
+    queue: { name: "restorai-gpu", concurrency: 1, policy: "single GPU owner" },
+    worker: {
+      status: "recorded-online",
+      inference: "forked RQ child",
+      parent_cuda: false,
+    },
+    gpu: demoEvidence.environment,
+    storage: {
+      mode: "local artifact storage",
+      retention_hours: 24,
+      provenance: "input/output SHA-256",
+    },
+    models: demoEvidence.verification,
   };
   const data = appMode === "demo" ? demo : status.data;
   if (!data)
@@ -686,9 +1026,20 @@ export function SystemPage() {
         <div>
           <p className="eyebrow">{t("system.eyebrow")}</p>
           <h1>{t("system.title")}</h1>
+          {appMode === "demo" ? (
+            <p className="recorded-at">
+              {t("system.recordedAt")} ·{" "}
+              {new Date(demoEvidence.generated_at).toLocaleString()}
+            </p>
+          ) : null}
         </div>
         <Badge status={data.status} />
       </div>
+      {appMode === "demo" ? (
+        <div className="replay-notice">
+          <Badge status="recorded-snapshot" /> {t("system.snapshotNote")}
+        </div>
+      ) : null}
       <section className="status-grid">
         {cards.map(([key, label]) => (
           <article className="panel status-card" key={key}>

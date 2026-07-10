@@ -27,15 +27,20 @@ It does not package model weights or a CUDA worker. Mount `MODEL_ROOT` read-only
 
 `.github/workflows/pages.yml` builds `VITE_APP_MODE=demo`, uploads `dist/` as the
 official Pages artifact, and deploys with GitHub's Pages Actions. The public demo
-has no API, credentials, user uploads, GPU, or model weights.
+has no API, credentials, user uploads, GPU, or model weights. It publishes verified
+precomputed outputs, evidence metadata, workflow replays, and the deployment commit
+SHA. The separate real-mode recording is generated with
+`scripts/capture_real_demo.py` against a local API/RQ/CUDA stack.
 
 ## Release checklist
 
 1. Run full model SHA verification.
 2. Apply `alembic upgrade head` and check `/api/v1/health/ready`.
 3. Run Python tests/lint and React typecheck/build.
-4. Run `python scripts/gpu_smoke.py` and regenerate Demo results when models change.
+4. Run `python scripts/gpu_smoke.py` and regenerate evidence with
+   `python scripts/build_demo_scenarios.py --gpu` when models change.
 5. Submit one real image Job and one short video Job through API/RQ.
 6. Verify output dimensions, video FPS/audio, model snapshots, and downloads.
 7. Confirm expiry cleanup and available disk space.
 8. Review CodeFormer and other upstream license obligations for the target use.
+9. Capture screenshots/video and verify the Pages build displays the pushed commit SHA.

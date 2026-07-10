@@ -1,143 +1,334 @@
 [
   {
-    "id": "archive-portrait",
+    "id": "face-lab",
+    "job_id": "demo-face-lab",
     "kind": "image",
     "title": {
-      "en": "Archive portrait",
-      "zh": "老照片人像修復"
+      "en": "Face restoration lab",
+      "zh": "人臉修復實驗室"
     },
     "description": {
-      "en": "CodeFormer face restoration followed by 2× super-resolution.",
-      "zh": "先以 CodeFormer 修復人臉，再進行 2 倍超解析。"
+      "en": "Compare GFPGAN and CodeFormer on the same degraded portrait, then inspect the 2× final pipeline.",
+      "zh": "以同一張退化人像比較 GFPGAN 與 CodeFormer，並檢視 2 倍超解析完整流程。"
     },
     "input": "archive-portrait/input.jpg",
-    "output": "archive-portrait/output.png",
+    "outputs": {
+      "gfpgan": "archive-portrait/gfpgan.png",
+      "codeformer": "archive-portrait/codeformer.png",
+      "restored": "archive-portrait/output.png"
+    },
+    "default_output": "restored",
     "operation": "face_restore_upscale",
-    "model": "CodeFormer + Real-ESRGAN x2plus",
+    "model": "GFPGAN v1.4 / CodeFormer / Real-ESRGAN x2plus",
+    "model_ids": [
+      "gfpgan-v1.4",
+      "codeformer",
+      "realesrgan-x2plus",
+      "facelib-detector",
+      "facelib-parser"
+    ],
     "parameters": {
-      "fidelity": 0.7,
-      "scale": 2,
-      "codeformer_sha256": "1009e537e0c2a07d…",
-      "realesrgan_sha256": "49fafd45f8fd7aa8…"
+      "gfpgan_strength": 0.8,
+      "codeformer_fidelity": 0.7,
+      "scale": 2
     },
     "metrics": {
       "input": "256×256",
       "output": "512×512",
-      "elapsed": "2751.01 ms",
-      "faces": 1
+      "faces": 1,
+      "elapsed_ms": 349.06,
+      "gfpgan_ms": 1865.99,
+      "codeformer_ms": 888.74,
+      "peak_vram_mib": 1084.9
+    },
+    "artifact": {
+      "input_sha256": "e1e7019297583c63e7c52ebcdff6ce56e5f52f703e08e6ac38aa11ef3bc12767",
+      "outputs": {
+        "gfpgan": {
+          "path": "archive-portrait/gfpgan.png",
+          "sha256": "4f2d009fb20682c7ef9d13babad9767bc3f37aed798814ccdcb3c8fe5691ab74",
+          "size_bytes": 101921
+        },
+        "codeformer": {
+          "path": "archive-portrait/codeformer.png",
+          "sha256": "06643fa73c5a964cb707d0a6c13539cdb3512c35d462e46d259eb9375915e027",
+          "size_bytes": 102279
+        },
+        "restored": {
+          "path": "archive-portrait/output.png",
+          "sha256": "428384f270779c18be24d6b22d0ead6e8ee80f8855a372fbb965002c7e833793",
+          "size_bytes": 390798
+        }
+      }
     },
     "events": [
       {
+        "id": 1,
         "stage": "validate",
-        "progress": 0.05
+        "progress": 0.05,
+        "message": "Input size, pixels and format validated",
+        "duration_ms": 18
       },
       {
+        "id": 2,
         "stage": "face_detect",
-        "progress": 0.25
+        "progress": 0.25,
+        "message": "RetinaFace detected one face",
+        "duration_ms": 221
       },
       {
+        "id": 3,
         "stage": "face_restore",
-        "progress": 0.62
+        "progress": 0.62,
+        "message": "CodeFormer restored facial features",
+        "duration_ms": 888
       },
       {
+        "id": 4,
         "stage": "upscale",
-        "progress": 0.88
+        "progress": 0.88,
+        "message": "Real-ESRGAN x2plus enhanced the full frame",
+        "duration_ms": 1
       },
       {
+        "id": 5,
         "stage": "complete",
-        "progress": 1
+        "progress": 1,
+        "message": "Artifact and provenance recorded",
+        "duration_ms": 12
       }
     ]
   },
   {
     "id": "product-detail",
+    "job_id": "demo-product-detail",
     "kind": "image",
     "title": {
-      "en": "Product detail",
-      "zh": "產品細節超解析"
+      "en": "4× product detail",
+      "zh": "4 倍產品細節"
     },
     "description": {
-      "en": "Recover texture and edges with Real-ESRGAN 4×.",
-      "zh": "使用 Real-ESRGAN 4 倍放大，重建材質與邊緣。"
+      "en": "Recover material texture and edges with Real-ESRGAN x4plus.",
+      "zh": "使用 Real-ESRGAN x4plus 重建材質紋理與邊緣。"
     },
     "input": "product-detail/input.jpg",
-    "output": "product-detail/output.png",
+    "outputs": {
+      "restored": "product-detail/output.png"
+    },
+    "default_output": "restored",
     "operation": "upscale",
     "model": "Real-ESRGAN x4plus",
+    "model_ids": ["realesrgan-x4plus"],
     "parameters": {
       "scale": 4,
-      "model_sha256": "4fa0d38905f75ac0…"
+      "tile_size": 512,
+      "fp16": true
     },
     "metrics": {
       "input": "256×256",
       "output": "1024×1024",
-      "elapsed": "263.16 ms"
+      "elapsed_ms": 242.7,
+      "peak_vram_mib": 599.6
+    },
+    "artifact": {
+      "input_sha256": "77f27a013156d478282b9080bb6093021c92291bbeebb6277fa27c3d34c7409a",
+      "outputs": {
+        "restored": {
+          "path": "product-detail/output.png",
+          "sha256": "baeb3f3cbf43fc9fd49151c43bdd913a1b7bcdb81a87484d521c7e2956473566",
+          "size_bytes": 1299076
+        }
+      }
     },
     "events": [
       {
+        "id": 1,
         "stage": "validate",
-        "progress": 0.05
+        "progress": 0.05,
+        "message": "Input validated",
+        "duration_ms": 8
       },
       {
+        "id": 2,
         "stage": "model_load",
-        "progress": 0.2
+        "progress": 0.2,
+        "message": "Real-ESRGAN x4plus loaded from manifest",
+        "duration_ms": 32
       },
       {
+        "id": 3,
         "stage": "upscale",
-        "progress": 0.82
+        "progress": 0.86,
+        "message": "Tiled 4× super-resolution completed",
+        "duration_ms": 242
       },
       {
+        "id": 4,
         "stage": "complete",
-        "progress": 1
+        "progress": 1,
+        "message": "PNG artifact written",
+        "duration_ms": 8
       }
     ]
   },
   {
     "id": "city-motion",
+    "job_id": "demo-city-motion",
     "kind": "video",
     "title": {
-      "en": "City motion",
-      "zh": "城市動態補幀"
+      "en": "24 → 48 FPS motion",
+      "zh": "24 → 48 FPS 動態補幀"
     },
     "description": {
-      "en": "RIFE doubles motion cadence while preserving the audio stream.",
-      "zh": "RIFE 將影格率加倍，同時保留原始音訊。"
+      "en": "RIFE v4.25 synthesizes intermediate frames while retaining the source audio.",
+      "zh": "RIFE v4.25 生成中間影格，同時保留來源音訊。"
     },
     "input": "city-motion/input.mp4",
-    "output": "city-motion/output.mp4",
+    "outputs": {
+      "restored": "city-motion/output.mp4"
+    },
+    "default_output": "restored",
     "operation": "interpolate",
     "model": "RIFE v4.25",
+    "model_ids": ["rife-v4.25"],
     "parameters": {
       "input_fps": 24,
-      "target_fps": 48,
-      "model_sha256": "6615790efd627772…"
+      "target_fps": 48
     },
     "metrics": {
-      "input": "24 FPS",
-      "output": "48 FPS",
+      "input": "768×432 · 24 FPS",
+      "output": "768×432 · 48 FPS",
+      "frames": 144,
       "audio": "preserved",
-      "elapsed": "1491.72 ms"
+      "elapsed_ms": 1425.81,
+      "peak_vram_mib": 315.6
+    },
+    "artifact": {
+      "input_sha256": "6b0bc9b661caea5d10d46b464544997316dc999d6c66cb9a112997002ca3fe49",
+      "outputs": {
+        "restored": {
+          "path": "city-motion/output.mp4",
+          "sha256": "2cc643d6d4c6f7ffd77f4655b91c642fdacb830d6613ed3a374edc106cdf00f4",
+          "size_bytes": 290635
+        }
+      }
     },
     "events": [
       {
+        "id": 1,
         "stage": "validate",
-        "progress": 0.05
+        "progress": 0.05,
+        "message": "FFprobe validated video and audio streams",
+        "duration_ms": 35
       },
       {
+        "id": 2,
         "stage": "decode",
-        "progress": 0.15
+        "progress": 0.15,
+        "message": "Decoded 72 source frames",
+        "duration_ms": 75
       },
       {
+        "id": 3,
         "stage": "frames",
-        "progress": 0.78
+        "progress": 0.82,
+        "message": "RIFE generated intermediate frames",
+        "duration_ms": 1425
       },
       {
+        "id": 4,
         "stage": "export",
-        "progress": 0.95
+        "progress": 0.96,
+        "message": "FFmpeg encoded H.264 and copied audio",
+        "duration_ms": 182
       },
       {
+        "id": 5,
         "stage": "complete",
-        "progress": 1
+        "progress": 1,
+        "message": "Video artifact verified",
+        "duration_ms": 15
+      }
+    ]
+  },
+  {
+    "id": "combined-video",
+    "job_id": "demo-combined-video",
+    "kind": "video",
+    "title": {
+      "en": "Interpolation + 2× upscale",
+      "zh": "補幀＋2 倍超解析"
+    },
+    "description": {
+      "en": "A complete RIFE → Real-ESRGAN video pipeline with audio preservation.",
+      "zh": "完整的 RIFE → Real-ESRGAN 影片流程，並保留音訊。"
+    },
+    "input": "combined-video/input.mp4",
+    "outputs": {
+      "restored": "combined-video/output.mp4"
+    },
+    "default_output": "restored",
+    "operation": "interpolate_upscale",
+    "model": "RIFE v4.25 + Real-ESRGAN x2plus",
+    "model_ids": ["rife-v4.25", "realesrgan-x2plus"],
+    "parameters": {
+      "input_fps": 12,
+      "target_fps": 24,
+      "scale": 2
+    },
+    "metrics": {
+      "input": "192×108 · 12 FPS",
+      "output": "384×216 · 24 FPS",
+      "frames": 48,
+      "audio": "preserved",
+      "elapsed_ms": 1235.08,
+      "peak_vram_mib": 110.5
+    },
+    "artifact": {
+      "input_sha256": "b4d8e1aae0998577dd80fd7aa09e0c40d76c4ddeb02e3b3a546c4460541ae9bc",
+      "outputs": {
+        "restored": {
+          "path": "combined-video/output.mp4",
+          "sha256": "fbf8a3eef082ff080df1fb6d6885b57d786af6abadb5810567752ebd8a8234f3",
+          "size_bytes": 82702
+        }
+      }
+    },
+    "events": [
+      {
+        "id": 1,
+        "stage": "validate",
+        "progress": 0.05,
+        "message": "Video limits and streams validated",
+        "duration_ms": 24
+      },
+      {
+        "id": 2,
+        "stage": "interpolate",
+        "progress": 0.46,
+        "message": "RIFE doubled temporal resolution",
+        "duration_ms": 444
+      },
+      {
+        "id": 3,
+        "stage": "upscale",
+        "progress": 0.86,
+        "message": "Real-ESRGAN enhanced every source and generated frame",
+        "duration_ms": 691
+      },
+      {
+        "id": 4,
+        "stage": "export",
+        "progress": 0.97,
+        "message": "H.264 output encoded with source audio",
+        "duration_ms": 98
+      },
+      {
+        "id": 5,
+        "stage": "complete",
+        "progress": 1,
+        "message": "Combined artifact verified",
+        "duration_ms": 11
       }
     ]
   }

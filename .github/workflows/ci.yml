@@ -41,7 +41,7 @@ jobs:
           npm run format:check
           npm test
           npm run typecheck
-          VITE_APP_MODE=demo npm run build
+          VITE_APP_MODE=demo VITE_BUILD_SHA=${GITHUB_SHA} npm run build
           npm run e2e
 
       - name: Validate Compose configuration

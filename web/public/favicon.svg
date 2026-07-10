@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RestorAI Studio">
+  <rect width="64" height="64" rx="14" fill="#101720"/>
+  <path d="M17 47V17h15c9 0 15 5 15 13 0 5-3 9-8 11l9 6H37l-9-7v7H17zm11-16h4c3 0 5-1 5-4s-2-4-5-4h-4v8z" fill="#68b5f0"/>
+  <circle cx="48" cy="17" r="5" fill="#67d391"/>
+</svg>
