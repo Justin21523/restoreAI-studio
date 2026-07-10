@@ -1,0 +1,144 @@
+[
+  {
+    "id": "archive-portrait",
+    "kind": "image",
+    "title": {
+      "en": "Archive portrait",
+      "zh": "老照片人像修復"
+    },
+    "description": {
+      "en": "CodeFormer face restoration followed by 2× super-resolution.",
+      "zh": "先以 CodeFormer 修復人臉，再進行 2 倍超解析。"
+    },
+    "input": "archive-portrait/input.jpg",
+    "output": "archive-portrait/output.png",
+    "operation": "face_restore_upscale",
+    "model": "CodeFormer + Real-ESRGAN x2plus",
+    "parameters": {
+      "fidelity": 0.7,
+      "scale": 2,
+      "codeformer_sha256": "1009e537e0c2a07d…",
+      "realesrgan_sha256": "49fafd45f8fd7aa8…"
+    },
+    "metrics": {
+      "input": "256×256",
+      "output": "512×512",
+      "elapsed": "2751.01 ms",
+      "faces": 1
+    },
+    "events": [
+      {
+        "stage": "validate",
+        "progress": 0.05
+      },
+      {
+        "stage": "face_detect",
+        "progress": 0.25
+      },
+      {
+        "stage": "face_restore",
+        "progress": 0.62
+      },
+      {
+        "stage": "upscale",
+        "progress": 0.88
+      },
+      {
+        "stage": "complete",
+        "progress": 1
+      }
+    ]
+  },
+  {
+    "id": "product-detail",
+    "kind": "image",
+    "title": {
+      "en": "Product detail",
+      "zh": "產品細節超解析"
+    },
+    "description": {
+      "en": "Recover texture and edges with Real-ESRGAN 4×.",
+      "zh": "使用 Real-ESRGAN 4 倍放大，重建材質與邊緣。"
+    },
+    "input": "product-detail/input.jpg",
+    "output": "product-detail/output.png",
+    "operation": "upscale",
+    "model": "Real-ESRGAN x4plus",
+    "parameters": {
+      "scale": 4,
+      "model_sha256": "4fa0d38905f75ac0…"
+    },
+    "metrics": {
+      "input": "256×256",
+      "output": "1024×1024",
+      "elapsed": "263.16 ms"
+    },
+    "events": [
+      {
+        "stage": "validate",
+        "progress": 0.05
+      },
+      {
+        "stage": "model_load",
+        "progress": 0.2
+      },
+      {
+        "stage": "upscale",
+        "progress": 0.82
+      },
+      {
+        "stage": "complete",
+        "progress": 1
+      }
+    ]
+  },
+  {
+    "id": "city-motion",
+    "kind": "video",
+    "title": {
+      "en": "City motion",
+      "zh": "城市動態補幀"
+    },
+    "description": {
+      "en": "RIFE doubles motion cadence while preserving the audio stream.",
+      "zh": "RIFE 將影格率加倍，同時保留原始音訊。"
+    },
+    "input": "city-motion/input.mp4",
+    "output": "city-motion/output.mp4",
+    "operation": "interpolate",
+    "model": "RIFE v4.25",
+    "parameters": {
+      "input_fps": 24,
+      "target_fps": 48,
+      "model_sha256": "6615790efd627772…"
+    },
+    "metrics": {
+      "input": "24 FPS",
+      "output": "48 FPS",
+      "audio": "preserved",
+      "elapsed": "1491.72 ms"
+    },
+    "events": [
+      {
+        "stage": "validate",
+        "progress": 0.05
+      },
+      {
+        "stage": "decode",
+        "progress": 0.15
+      },
+      {
+        "stage": "frames",
+        "progress": 0.78
+      },
+      {
+        "stage": "export",
+        "progress": 0.95
+      },
+      {
+        "stage": "complete",
+        "progress": 1
+      }
+    ]
+  }
+]

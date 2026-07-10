@@ -1,22 +1,34 @@
-# Quickstart
-
-Use the mock-safe path for interviews and CI.
+# Quick start
 
 ```bash
-pip install -r docker/requirements.demo.txt pytest httpx playwright
-python -m pytest -q
-python scripts/smoke_demo.py
-python scripts/build_static_demo.py
+python -m venv .venv
+source .venv/bin/activate
+pip install -e '.[gpu,dev]'
+cp .env.example .env
+npm ci && npm run build
+docker compose up -d postgres redis
+alembic upgrade head
+restorai models verify
+```
+
+Terminal 1:
+
+```bash
+restorai-api
+```
+
+Terminal 2:
+
+```bash
+restorai-worker
+```
+
+Open `http://127.0.0.1:8000`. Run `pytest -q`, `ruff check restorai tests alembic
+scripts`, and `npm run typecheck` before committing.
+
+Build only the public simulation with:
+
+```bash
+VITE_APP_MODE=demo npm run build
 python -m http.server 8080 -d dist
 ```
-
-Open `http://127.0.0.1:8080`.
-
-For the local demo API:
-
-```bash
-uvicorn webapp.main:app --host 127.0.0.1 --port 8000
-curl http://127.0.0.1:8000/api/v1/health
-```
-
-The full AI model path remains a prototype scaffold and requires model weights plus dependency hardening.

@@ -1,0 +1,10 @@
+.git
+.venv
+node_modules
+dist
+data
+docs/demo
+*.pth
+*.pt
+*.ckpt
+*.safetensors

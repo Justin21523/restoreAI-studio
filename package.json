@@ -1,10 +1,36 @@
 {
-  "name": "restoreai-studio",
-  "version": "0.1.0",
+  "name": "restoreai-studio-web",
+  "version": "0.2.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "demo:dev": "python3 -m http.server 4173 --directory demo-app",
-    "demo:build": "node -e \"require('fs').accessSync('demo-app/index.html')\"",
-    "demo:preview": "python3 -m http.server 4173 --directory demo-app"
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b web/tsconfig.json && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsc -b web/tsconfig.json --pretty false",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "format:check": "prettier --check 'web/**/*.{ts,tsx,css,json}' '*.{ts,json}'"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.66.0",
+    "i18next": "^26.3.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-i18next": "^17.0.8",
+    "react-router-dom": "^7.1.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@playwright/test": "^1.61.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@vitejs/plugin-react": "^4.4.0",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.5",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vitest": "^4.1.9"
   }
 }

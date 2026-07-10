@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "restorai-studio"
+version = "0.2.0"
+description = "Local-first GPU image and video restoration studio"
+readme = "README.md"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+  "alembic>=1.13,<2",
+  "fastapi>=0.116,<1",
+  "httpx>=0.27,<1",
+  "numpy>=1.26,<3",
+  "opencv-python-headless>=4.10,<5",
+  "Pillow>=10,<13",
+  "psycopg[binary]>=3.2,<4",
+  "pydantic-settings>=2.7,<3",
+  "python-multipart>=0.0.20,<1",
+  "PyYAML>=6,<7",
+  "redis>=5,<8",
+  "rq>=2,<3",
+  "SQLAlchemy>=2.0,<3",
+  "typer>=0.15,<1",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[project.optional-dependencies]
+gpu = [
+  "basicsr==1.4.2",
+  "facexlib==0.3.0",
+  "realesrgan==0.3.0",
+  "torch==2.9.1",
+  "torchvision==0.24.1",
+]
+dev = [
+  "coverage>=7.6,<8",
+  "mypy>=1.14,<2",
+  "playwright>=1.50,<2",
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.25,<2",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+restorai = "restorai.cli:app"
+restorai-api = "restorai.api:run"
+restorai-worker = "restorai.worker:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["restorai"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"restorai/model_manifest.yaml" = "restorai/model_manifest.yaml"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = ["restorai/vendor"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"restorai/api.py" = ["B008"]
+
+[tool.mypy]
+python_version = "3.10"
+plugins = ["pydantic.mypy"]
+warn_unused_ignores = true
+disallow_untyped_defs = true
+ignore_missing_imports = true

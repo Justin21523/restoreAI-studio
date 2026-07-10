@@ -1,258 +1,263 @@
 # RestorAI Studio
 
-AI image restoration and super-resolution studio with a portfolio-safe interactive demo.
+Local-first GPU workspace for restoring images and video with Real-ESRGAN,
+GFPGAN, CodeFormer, and RIFE. Processing is durable and observable: uploads
+become queued Jobs, progress is recorded as events, and successful results are
+published as expiring Artifacts.
 
-[Live demo](https://justin21523.github.io/restoreAI-studio/) · [Portfolio page](https://justin21523.github.io/zh-TW/projects/restoreAI-studio/) · [Demo video](docs/demo/demo-tour.webm)
+[Public workflow demo](https://justin21523.github.io/restoreAI-studio/) ·
+[API reference](docs/API.md) · [Model registry](docs/MODELS.md) ·
+[Deployment guide](DEPLOYMENT.md)
 
-![RestorAI Studio demo cover](docs/demo/cover.webp)
+![RestorAI Studio workspace](docs/demo/cover.webp)
 
-## Project Snapshot
+## What it solves
 
-| Area | Status | Notes |
-| --- | --- | --- |
-| Product goal | Portfolio-ready prototype | Image restoration workspace for upscaling, face cleanup, batch/job flow, and model-serving architecture. |
-| Public demo | Stable | Static Canvas demo on GitHub Pages; no GPU, model weights, or backend required. |
-| Local demo API | Stable smoke path | FastAPI + Pillow endpoint in `webapp/main.py` for upload/upscale smoke tests. |
-| Full AI backend | Prototype scaffold | FastAPI routers, Gradio, CLI, PyQt, model warehouse, Real-ESRGAN/GFPGAN/RIFE adapters exist, but true model mode still needs dependency and weight hardening. |
-| Tests/build | Smoke verified | `compileall`, pytest smoke tests, demo API smoke, and static build are part of CI. |
-| Deployment | GitHub Pages | `.github/workflows/pages.yml` builds `dist/` and publishes it to the legacy `gh-pages` branch. |
+AI restoration tools often stop at a one-off notebook or synchronous upload
+endpoint. RestorAI Studio packages the same inference into a product-shaped
+workflow with strict local model ownership, GPU back-pressure, batch submission,
+durable history, reproducible output metadata, cancellation, retry, and expiry.
 
-## Demo Flow
+## Current capabilities
 
-The first screen is the product itself: an image restoration workbench with sample scenarios, upload, restoration controls, before/after comparison, pipeline status, and job payload.
-
-```mermaid
-flowchart LR
-  A[Open GitHub Pages demo] --> B[Load built-in sample]
-  B --> C[Adjust scale and strength]
-  C --> D[Run demo flow]
-  D --> E[Inspect before/after viewer]
-  E --> F[Review metrics and job payload]
-  F --> G[Use screenshots or demo video in portfolio]
-```
-
-## What Is Implemented
-
-| Layer | Implemented |
+| Capability | Implementation status |
 | --- | --- |
-| Static demo | Canvas-generated before/after visuals, scenario switcher, upload support, pipeline animation, debug payload, responsive layout. |
-| Demo API | `GET /api/v1/health`, `POST /api/v1/upscale`; deterministic Pillow resize + sharpen path. |
-| Backend scaffold | FastAPI app, modular routers, middleware, metrics hooks, history/export/admin/job routes, model warehouse config. |
-| Model adapters | Real-ESRGAN processor is the most complete; GFPGAN/RIFE remain scaffolded. |
-| Interfaces | Static web demo, FastAPI API, Gradio shell, CLI shell, PyQt shell. |
-| Assets | Cover image, desktop screenshot, pipeline screenshot, mobile screenshot, WebM tour video. |
-| CI | Python compile check, pytest smoke tests, demo API smoke, static demo build, Pages deploy. |
+| Image super-resolution | Real-ESRGAN x2plus and x4plus, CUDA validated |
+| Face restoration | GFPGAN v1.4 and CodeFormer, face detection/parsing, CUDA validated |
+| Video frame interpolation | RIFE v4.25 with source audio preservation, CUDA validated |
+| Video super-resolution | Per-frame Real-ESRGAN x2/x4 export to H.264 MP4 |
+| Combined video flow | RIFE interpolation followed by Real-ESRGAN upscale |
+| Batch processing | Multi-file image/video API and directory CLI submission |
+| Job system | PostgreSQL source of truth, Redis/RQ GPU queue, progress events, cancel/retry |
+| Artifacts | SHA-256 input/output provenance, model snapshot, download/delete, 24-hour file expiry |
+| Web product | Bilingual React workspace, presets, Job/Batch detail, comparison, Models and System views |
+| Public demo | Three real precomputed GPU scenarios on GitHub Pages; no upload or backend required |
 
 ## Architecture
 
 ```mermaid
-flowchart TB
-  subgraph PublicDemo[Public demo path]
-    GH[GitHub Pages] --> Static[portfolio-web static app]
-    Static --> Canvas[Browser Canvas restoration simulation]
-    Static --> Media[Generated screenshots and WebM demo]
-  end
-
-  subgraph LocalDemo[Local smoke-safe API]
-    Uploader[Image upload] --> DemoAPI[FastAPI demo API]
-    DemoAPI --> Pillow[Pillow resize and sharpen]
-    Pillow --> PNG[PNG response with metadata headers]
-  end
-
-  subgraph FullPrototype[Full AI service scaffold]
-    REST[FastAPI routers] --> Pipeline[Image/video pipeline]
-    Gradio[Gradio UI] --> Pipeline
-    CLI[CLI] --> Pipeline
-    Desktop[PyQt desktop shell] --> Pipeline
-    Pipeline --> Warehouse[AI Warehouse model weights]
-    Pipeline --> Models[Real-ESRGAN / GFPGAN / RIFE]
-    REST --> Jobs[ThreadPool job manager]
-    REST --> Metrics[Metrics and health endpoints]
-  end
-```
-
-## Data Flow
-
-```mermaid
-sequenceDiagram
-  participant User
-  participant Demo as Static Demo
-  participant Canvas
-  participant Gallery as Portfolio Media
-
-  User->>Demo: Open page or upload image
-  Demo->>Canvas: Draw degraded input
-  Demo->>Canvas: Apply mock restoration filters
-  Demo->>Demo: Animate ingest/safety/restore/upscale/export
-  Demo->>User: Show before/after and job payload
-  Demo->>Gallery: Same flow captured as screenshots/video
-```
-
-## Module Organization
-
-```mermaid
 flowchart LR
-  Root[restoreAI-studio] --> API[api/ FastAPI routers]
-  Root --> Core[core/ model processors]
-  Root --> Utils[utils/ config, artifacts, metrics]
-  Root --> UI[ui/ gradio, cli, desktop, web]
-  Root --> Webapp[webapp/ demo API]
-  Root --> Portfolio[portfolio-web/ static demo]
-  Root --> Scripts[scripts/ smoke, build, capture]
-  Root --> Tests[tests/ smoke tests]
-  Root --> Docs[docs/ diagrams and demo assets]
+  UI[React workspace] --> API[FastAPI /api/v1]
+  CLI[Directory CLI] --> API
+  API --> PG[(PostgreSQL)]
+  API --> OUTBOX[Transactional outbox]
+  OUTBOX --> REDIS[(Redis / RQ)]
+  REDIS --> WORKER[Single-concurrency GPU worker]
+  WORKER --> PIPE[Image and video pipelines]
+  PIPE --> REG[Strict model registry]
+  REG --> ROOT[/mnt/c/ai_models]
+  WORKER --> FS[(Local artifact storage)]
+  WORKER --> PG
+  API --> FS
 ```
 
-## Deployment View
+The API does not perform inference. It persists a Job and outbox record first,
+then dispatches work to a queue. A single worker owns the GPU to prevent VRAM
+contention. PostgreSQL remains authoritative even if Redis is restarted.
 
-```mermaid
-flowchart TB
-  Dev[Local repo] --> CI[GitHub Actions]
-  CI --> Compile[compileall]
-  CI --> Tests[pytest + demo smoke]
-  CI --> Build[build_static_demo.py]
-  Build --> Branch[Push dist/ to gh-pages]
-  Branch --> Pages[GitHub Pages]
-  Pages --> PublicURL[justin21523.github.io/restoreAI-studio]
+## Model policy
 
-  Dev --> PortfolioRepo[justin-portfolio]
-  PortfolioRepo --> PortfolioPages[justin21523.github.io/zh-TW/projects/restoreAI-studio]
+Every weight is resolved from the absolute root `/mnt/c/ai_models`. Runtime
+downloads are disabled. `restorai/model_manifest.yaml` pins each relative path,
+minimum size, upstream source, and SHA-256 digest.
+
+```bash
+# Full integrity verification
+python -m restorai.cli models verify
+
+# Explicit, operator-initiated installation of missing manifest files only
+python -m restorai.cli models install-missing
 ```
 
-## Technology Stack
+No weight is copied into the repository or runtime storage. See
+[docs/MODELS.md](docs/MODELS.md) for the exact layout and licensing caveats.
 
-```mermaid
-mindmap
-  root((RestorAI Studio))
-    Demo
-      HTML
-      CSS
-      JavaScript Canvas
-      Playwright screenshots
-    Backend
-      FastAPI
-      Uvicorn
-      Pydantic
-      Pillow demo API
-    AI Prototype
-      PyTorch
-      Real-ESRGAN
-      GFPGAN
-      CodeFormer
-      RIFE
-      OpenCV
-    Interfaces
-      Gradio
-      CLI
-      PyQt
-    Delivery
-      GitHub Pages
-      Docker demo files
-      pytest smoke tests
-```
+## Local quick start
 
-## Quick Start
+Requirements: Python 3.10, Node.js 22, Docker Compose, FFmpeg, an NVIDIA GPU,
+and a CUDA-compatible PyTorch installation. This machine was validated with an
+RTX 5080, PyTorch 2.9.1 + CUDA 13.0.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r docker/requirements.demo.txt pytest httpx playwright
+pip install -e '.[gpu,dev]'
+cp .env.example .env
+
+npm ci
+npm run build
+
+docker compose up -d postgres redis
+alembic upgrade head
+python -m restorai.cli models verify
 ```
 
-Run the static demo locally:
+Start the API and GPU worker in separate terminals:
 
 ```bash
-python scripts/build_static_demo.py
-python -m http.server 8080 -d dist
+restorai-api
+restorai-worker
 ```
 
-Run the demo API:
+Open `http://127.0.0.1:8000`. Interactive API documentation is available at
+`http://127.0.0.1:8000/api/v1/docs`.
+
+For a batch directory submission:
 
 ```bash
-uvicorn webapp.main:app --host 127.0.0.1 --port 8000
-curl http://127.0.0.1:8000/api/v1/health
+restorai process-directory ./samples --operation upscale --pattern '*.png'
 ```
 
-Run verification:
+## API examples
 
 ```bash
-python -m compileall -q api core utils scripts ui webapp
-python -m pytest -q
-python scripts/smoke_demo.py
-python scripts/build_static_demo.py --check
+curl -F 'file=@portrait.png' \
+  -F 'operation=face_restore_upscale' \
+  -F 'face_method=codeformer' \
+  -F 'fidelity=0.7' \
+  -F 'scale=2' \
+  http://127.0.0.1:8000/api/v1/jobs/images
+
+curl -F 'file=@clip.mp4' \
+  -F 'operation=interpolate_upscale' \
+  -F 'target_fps=60' \
+  -F 'scale=2' \
+  http://127.0.0.1:8000/api/v1/jobs/videos
 ```
 
-Regenerate portfolio media:
+Use `GET /api/v1/jobs/{id}/events` for Server-Sent Events and download the
+result from `GET /api/v1/artifacts/{id}/download`.
+
+## Repository map
+
+```text
+restorai/
+  adapters/          model-specific inference adapters
+  pipelines/         image/video validation and orchestration
+  services/          job, storage, retention, and API client services
+  vendor/            pinned inference architecture snapshots only
+  api.py              versioned HTTP contract and SSE
+  worker.py           RQ GPU worker
+  model_registry.py   strict manifest/path/checksum boundary
+  orm.py              durable domain schema
+web/                  canonical React + TypeScript frontend
+alembic/              PostgreSQL schema migrations
+tests/unit/           API, registry, pipeline, job, error, and retention tests
+tests/e2e/            Playwright public-demo and mocked real-mode journeys
+scripts/              demo generation, GPU smoke, build, and reproducible capture
+docs/                 operation and design documentation
+```
+
+The pre-refactor `api/`, `core/`, `ui/`, `utils/`, `webapp/`, Gradio, and PyQt
+implementations were removed. They represented overlapping products with
+incompatible configuration and incomplete model paths.
+
+## Quality checks
 
 ```bash
-python scripts/capture_demo_assets.py
+pytest -q
+ruff check restorai tests alembic scripts
+npm test
+npm run typecheck
+npm run build
+npm run e2e
+python scripts/gpu_smoke.py
+alembic upgrade head --sql >/tmp/restorai-schema.sql
 ```
 
-## Demo Scenarios
+GPU inference is intentionally separated from unit tests. Run the explicit model
+verification and a small real image/video Job before release. The validated
+end-to-end path includes API upload → PostgreSQL/outbox → Redis/RQ → CUDA worker
+→ Artifact download, including video FPS and audio-stream checks.
 
-| Scenario | What it shows | Interview angle |
+## Operational behavior
+
+- GPU queue concurrency is one worker process by design.
+- Failed work is recorded in both PostgreSQL and RQ's failed-job registry.
+- Queued and running work can be cancelled; failed/cancelled Jobs can be retried.
+- Uploaded and output files expire after 24 hours by default; metadata is retained.
+- Image size/pixel count and video size/duration/resolution/FPS are bounded.
+- Artifact downloads are constrained to `STORAGE_ROOT` to prevent path traversal.
+- Health endpoints distinguish process liveness from database/Redis/model readiness.
+- System status reports the RQ worker, queue depth, GPU/VRAM, storage, models, and services.
+- Individual retries are detached from their original Batch; failed Batch retries create linked Batches.
+
+## Public demo versus real mode
+
+| Environment | Purpose | Models/data |
 | --- | --- | --- |
-| Archive photo restore | Noisy historical image cleanup and 4x output metadata | Product thinking: old-photo restoration workflow. |
-| Portrait face cleanup | Face-oriented enhancement controls | AI UX: strength control, safety step, explainable job payload. |
-| Product detail upscale | Detail-preserving product crop | Practical use case: e-commerce image quality improvement. |
-| Upload mode | User-provided image rendered through the same viewer | Workflow completeness without server dependency. |
+| GitHub Pages | Fast interview walkthrough and responsive UX | Real precomputed CodeFormer, Real-ESRGAN, and RIFE outputs |
+| Local real mode | Complete CUDA inference and Job lifecycle | `/mnt/c/ai_models`, PostgreSQL, Redis, local storage |
+| API container | Portable control plane/frontend | Mount model/storage paths; GPU worker remains host-first |
 
-## API Smoke Contract
+Set `VITE_APP_MODE=demo` for Pages and `VITE_APP_MODE=real` for the local API
+build. The visual treatment is shared, while the environment badge makes the
+boundary explicit.
 
-| Endpoint | Purpose | Stable for CI |
+### Public demo scenarios
+
+| Scenario | Real pipeline | Measured result on RTX 5080 |
 | --- | --- | --- |
-| `GET /api/v1/health` | Returns demo health and mode | Yes |
-| `POST /api/v1/upscale` | Accepts image file, scale, method, sharpen; returns PNG | Yes |
+| Archive portrait | CodeFormer + Real-ESRGAN 2× | 1 face, 256² → 512², about 2.8 s |
+| Product detail | Real-ESRGAN 4× | 256² → 1024², about 0.2 s after model warm-up |
+| City motion | RIFE v4.25 | 24 → 48 FPS, audio preserved, about 1.4 s |
 
-Example:
+The project-owned masters, generation notes, deterministic degradation, and
+GPU output process are documented in [docs/demo/SOURCES.md](docs/demo/SOURCES.md).
 
-```bash
-curl -F "file=@sample.png" \
-  -F "scale=2" \
-  -F "method=bicubic" \
-  -F "sharpen=true" \
-  http://127.0.0.1:8000/api/v1/upscale --output out.png
-```
+## Key engineering decisions
 
-## Interview Highlights
+- **Manifest over discovery:** exact model IDs and hashes are auditable; arbitrary
+  files under the warehouse cannot silently become production dependencies.
+- **PostgreSQL plus outbox:** Job creation survives transient Redis failures and
+  can be dispatched later without losing user intent.
+- **One GPU owner:** predictable VRAM use is more important than misleading local
+  parallelism on a single 16 GB card.
+- **RIFE before upscale:** interpolation runs on fewer pixels, reducing latency and
+  VRAM; Real-ESRGAN then enhances all source and generated frames consistently.
+- **Files expire, metadata stays:** local disk remains bounded while portfolio and
+  debugging evidence—parameters, hashes, timings, model versions—remains useful.
+- **No CUDA initialization in the RQ parent:** GPU capability data comes from
+  `nvidia-smi`, leaving each forked child free to initialize CUDA safely.
 
-| Highlight | Why it matters |
-| --- | --- |
-| Mock-safe public demo | The project can be evaluated without GPU, large weights, or private infrastructure. |
-| Clear prototype honesty | README separates stable demo paths from unfinished true-model scaffold. |
-| Multi-interface architecture | Shows backend/API/UI/CLI/desktop decomposition around a shared restoration pipeline idea. |
-| CI-backed static deployment | GitHub Pages only publishes after compile, tests, smoke, and static build pass. |
-| Reproducible media pipeline | Screenshots and video are generated from the real demo page, not manually assembled. |
+## Known constraints and next steps
 
-## Risks And Next Steps
+- Authentication, quotas, malware scanning, object storage, and multi-node GPU
+  scheduling are out of scope for the local portfolio release.
+- RIFE target FPS is quantized to an integer multiple of source FPS.
+- Large video jobs currently materialize PNG frames in a temporary work directory;
+  a streaming/segmented pipeline is the next major performance improvement.
+- CodeFormer uses the NTU S-Lab License 1.0; review its terms before any commercial
+  or hosted production use.
+- Add a larger quality benchmark corpus and objective image/video quality metrics.
 
-| Risk | Current handling | Next step |
-| --- | --- | --- |
-| True model mode needs heavyweight dependencies and model files | Public demo uses Canvas; local API uses Pillow | Pin production deps and add model availability tests. |
-| Several original scaffold modules are incomplete | README labels them as prototype scaffold | Complete `core.pipeline`, GFPGAN, RIFE, and shared model lifecycle. |
-| Full backend has legacy/unused routes | Smoke tests target stable demo contract | Consolidate API routers around one production contract. |
-| GPU availability varies | Demo path is CPU/browser safe | Add explicit CPU fallback for real inference mode. |
+## Portfolio demo script
 
-## Repository Map
+1. Open Workspace and explain the demo/real environment boundary.
+2. Queue two images to demonstrate batch submission and GPU serialization.
+3. Open Jobs; show live progress, cancellation, retry, and durable history.
+4. Download an Artifact; inspect output dimensions, model snapshot, and hashes.
+5. Queue a short video with `interpolate_upscale`; verify doubled FPS and retained audio.
+6. Open Models; show the read-only warehouse paths and checksums.
+7. Close with the architecture diagram and explain the outbox and retention decisions.
 
-| Path | Role |
-| --- | --- |
-| `portfolio-web/` | Static public demo source. |
-| `webapp/main.py` | Mock-safe FastAPI demo API. |
-| `scripts/build_static_demo.py` | Builds/validates GitHub Pages output. |
-| `scripts/smoke_demo.py` | API smoke test. |
-| `scripts/capture_demo_assets.py` | Generates cover, screenshots, and demo video. |
-| `docs/demo/` | Portfolio media assets. |
-| `api/`, `core/`, `ui/`, `utils/` | Original AI restoration service scaffold. |
+Use non-sensitive sample data and keep clips under five seconds for a reliable
+three-minute interview walkthrough. A timed narration is provided in
+[docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
-## Deployment
+## License and attribution
 
-GitHub Pages is the primary public deployment. The repository is configured for legacy Pages from the `gh-pages` branch. On push to `main`, `.github/workflows/pages.yml` runs:
+Project-specific source is intended for portfolio use. Vendored model architecture
+files and weights remain governed by their upstream licenses. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before redistribution or hosted use.
 
-1. Install smoke dependencies.
-2. Compile Python modules.
-3. Run pytest and demo API smoke.
-4. Build `dist/` from `portfolio-web/`.
-5. Publish `dist/` to the `gh-pages` branch.
+<!-- portfolio-release-notes:start -->
+## Portfolio release status
 
-Docker demo files are also included for environments that want a static Nginx frontend plus the `webapp` FastAPI demo backend.
+- Real CUDA adapters: implemented and locally validated.
+- Durable API/queue/history/artifacts: implemented and end-to-end validated.
+- React production build and GitHub Pages demo: implemented.
+- Automated suite: Python unit/integration, React component, and Playwright journeys.
+- Real GPU release smoke: GFPGAN, CodeFormer, Real-ESRGAN, RIFE, and combined video.
+- Remaining production work: authentication, object storage, and larger benchmarks.
+<!-- portfolio-release-notes:end -->

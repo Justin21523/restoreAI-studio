@@ -11,9 +11,8 @@ from pathlib import Path
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
-
 ROOT = Path(__file__).resolve().parents[1]
-WEB = ROOT / "portfolio-web"
+WEB = ROOT / "dist"
 OUT = ROOT / "docs" / "demo"
 SCREENSHOTS = OUT / "screenshots"
 VIDEO = OUT / "demo-tour.webm"
@@ -43,6 +42,7 @@ def convert_to_webp(source: Path, target: Path, quality: int = 86) -> None:
 
 
 def capture() -> None:
+    subprocess.run(["npm", "run", "build"], cwd=ROOT, check=True)
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     tmp_video = OUT / "_video"
     if tmp_video.exists():
@@ -64,7 +64,7 @@ def capture() -> None:
             page = browser.new_page(viewport={"width": 1440, "height": 1050}, device_scale_factor=1)
             page.goto(f"http://127.0.0.1:{PORT}/", wait_until="networkidle")
             page.screenshot(path=str(SCREENSHOTS / "workspace.png"), full_page=True)
-            page.locator("#run-demo").click()
+            page.get_by_role("button", name="Run demo flow").click()
             page.wait_for_timeout(2300)
             page.screenshot(path=str(SCREENSHOTS / "pipeline-complete.png"), full_page=False)
 
@@ -80,14 +80,20 @@ def capture() -> None:
             video_page = context.new_page()
             video_page.goto(f"http://127.0.0.1:{PORT}/", wait_until="networkidle")
             video_page.wait_for_timeout(500)
-            video_page.locator("#compare-slider").fill("26")
-            video_page.wait_for_timeout(450)
-            video_page.locator("#compare-slider").fill("74")
-            video_page.wait_for_timeout(450)
-            video_page.locator("#scenario").select_option("portrait")
-            video_page.wait_for_timeout(450)
-            video_page.locator("#run-demo").click()
+            video_page.get_by_role("slider", name="Before and after position").fill("28")
+            video_page.wait_for_timeout(500)
+            video_page.get_by_role("slider", name="Before and after position").fill("72")
+            video_page.wait_for_timeout(500)
+            video_page.get_by_role("button", name="Run demo flow").click()
             video_page.wait_for_timeout(2600)
+            video_page.get_by_label("Demo scenario").select_option("product-detail")
+            video_page.wait_for_timeout(900)
+            video_page.get_by_role("link", name="Jobs").click()
+            video_page.wait_for_timeout(800)
+            video_page.get_by_role("link", name="Models").click()
+            video_page.wait_for_timeout(1000)
+            video_page.get_by_role("link", name="System").click()
+            video_page.wait_for_timeout(1000)
             video_handle = video_page.video
             context.close()
             if video_handle is not None:

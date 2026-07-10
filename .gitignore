@@ -1,4 +1,7 @@
 __pycache__/
+.venv/
+.uv-cache/
+node_modules/
 *.py[cod]
 *$py.class
 .pytest_cache/
@@ -6,6 +9,8 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+playwright-report/
+test-results/
 
 .env
 .env.*
@@ -14,11 +19,17 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
 
 data/input/
 data/output/
 data/temp/
 data/models/
+data/storage/
+data/postgres/
+data/redis/
 models/
 *.pth
 *.pt

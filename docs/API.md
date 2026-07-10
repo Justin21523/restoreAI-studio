@@ -1,27 +1,45 @@
-# API
+# API reference
 
-## Stable Demo API
+Base path: `/api/v1`. OpenAPI UI: `/api/v1/docs`.
 
-`webapp/main.py` exposes the CI-safe demo API.
+## Health and models
 
-| Method | Path | Description |
+| Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/v1/health` | Health check with `mode: demo`. |
-| `POST` | `/api/v1/upscale` | Accepts an image and returns a resized/sharpened PNG. |
+| GET | `/health/live` | Process/version liveness |
+| GET | `/health/ready` | PostgreSQL, Redis, and fast model readiness |
+| GET | `/models` | Read-only manifest status; never triggers downloads |
 
-```bash
-uvicorn webapp.main:app --host 127.0.0.1 --port 8000
-curl http://127.0.0.1:8000/api/v1/health
-```
+## Jobs and batches
 
-```bash
-curl -F "file=@sample.png" \
-  -F "scale=2" \
-  -F "method=bicubic" \
-  -F "sharpen=true" \
-  http://127.0.0.1:8000/api/v1/upscale --output out.png
-```
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/jobs/images` | Queue one image Job |
+| POST | `/jobs/videos` | Queue one video Job |
+| POST | `/batches/images` | Queue 1–50 image Jobs |
+| POST | `/batches/videos` | Queue 1–10 video Jobs |
+| GET | `/jobs` | History, optionally filtered by status |
+| GET | `/jobs/{id}` | Job state, events, nested Artifact, model provenance |
+| GET | `/jobs/{id}/input` | Stream the unexpired original input |
+| GET | `/jobs/{id}/events` | SSE progress stream; accepts `Last-Event-ID` |
+| POST | `/jobs/{id}/cancel` | Cancel queued/running work |
+| POST | `/jobs/{id}/retry` | Clone failed/cancelled Job as a standalone retry |
+| GET | `/batches/{id}` | Aggregate status and all child Jobs |
+| POST | `/batches/{id}/cancel` | Cancel all queued/running child Jobs |
+| POST | `/batches/{id}/retry-failed` | Create a linked Batch for failed children only |
+| GET | `/system/status` | Database, Redis, queue, worker, GPU, storage, and model status |
 
-## Prototype Full API
+Image operations are `upscale`, `face_restore`, and `face_restore_upscale`.
+Video operations are `interpolate`, `upscale`, and `interpolate_upscale`.
 
-The original `api/` package contains the broader FastAPI service scaffold: restore routes, jobs, batch, video, safety, history, metrics, exports, and admin endpoints. It is preserved as architecture evidence, but the stable public demo does not depend on it.
+## Artifacts
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/artifacts/{id}` | Metadata, hashes, model snapshot, expiry |
+| GET | `/artifacts/{id}/download` | Stream an unexpired output file |
+| DELETE | `/artifacts/{id}` | Delete input/output file now; retain metadata |
+
+Errors use standard FastAPI JSON responses. Worker failures populate stable codes:
+`INVALID_IMAGE`, `INVALID_VIDEO`, `MODEL_UNAVAILABLE`, `CUDA_OUT_OF_MEMORY`,
+`OUTPUT_LIMIT_EXCEEDED`, `FFMPEG_FAILED`, `STORAGE_FULL`, or `PROCESSING_FAILED`.

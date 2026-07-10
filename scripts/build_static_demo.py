@@ -1,65 +1,75 @@
 #!/usr/bin/env python3
-"""Build and validate the static portfolio demo."""
+"""Build or validate the canonical React portfolio demo."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
-import shutil
+import json
+import subprocess
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "portfolio-web"
+WEB = ROOT / "web"
 DIST = ROOT / "dist"
-REQUIRED = ["index.html", "styles.css", "app.js", "sample-data.json"]
 
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
 
 
-def build(check: bool = False) -> None:
-    missing = [name for name in REQUIRED if not (SOURCE / name).exists()]
+def validate(root: Path) -> None:
+    required = [root / "index.html"]
+    if root == WEB:
+        required.extend(
+            [
+                WEB / "src" / "App.tsx",
+                WEB / "src" / "demo-scenarios.json",
+                WEB / "public" / "demo" / "scenarios" / "archive-portrait" / "output.png",
+                WEB / "public" / "demo" / "scenarios" / "product-detail" / "output.png",
+                WEB / "public" / "demo" / "scenarios" / "city-motion" / "output.mp4",
+                ROOT / "package.json",
+                ROOT / "vite.config.ts",
+            ]
+        )
+    else:
+        required.extend(
+            [
+                DIST / "assets",
+                DIST / "demo" / "scenarios" / "archive-portrait" / "output.png",
+                DIST / "demo" / "scenarios" / "product-detail" / "output.png",
+                DIST / "demo" / "scenarios" / "city-motion" / "output.mp4",
+            ]
+        )
+    missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]
     if missing:
-        raise SystemExit(f"Missing static demo files: {', '.join(missing)}")
+        raise SystemExit(f"Missing web files: {', '.join(missing)}")
+    html = (root / "index.html").read_text(encoding="utf-8")
+    marker = "RestorAI Studio" if root == WEB else '<div id="root"></div>'
+    if marker not in html:
+        raise SystemExit(f"index.html missing marker: {marker}")
 
+
+def build(check: bool = False) -> None:
+    validate(WEB)
     if not check:
-        if DIST.exists():
-            shutil.rmtree(DIST)
-        DIST.mkdir(parents=True)
-        for item in SOURCE.iterdir():
-            if item.name.startswith("."):
-                continue
-            target = DIST / item.name
-            if item.is_dir():
-                shutil.copytree(item, target)
-            else:
-                shutil.copy2(item, target)
-
-    target_root = DIST if DIST.exists() else SOURCE
-    for name in REQUIRED:
-        target = target_root / name
-        if not target.exists():
-            raise SystemExit(f"Build output missing {name}")
-
-    html = (target_root / "index.html").read_text(encoding="utf-8")
-    for marker in ["RestorAI Studio", "demo-workbench", "before-after"]:
-        if marker not in html:
-            raise SystemExit(f"index.html missing marker: {marker}")
-
+        subprocess.run(["npm", "run", "build"], cwd=ROOT, check=True)
+        validate(DIST)
+    root = DIST if DIST.exists() else WEB
     print(
-        {
-            "mode": "check" if check else "build",
-            "root": str(target_root),
-            "index_sha": digest(target_root / "index.html"),
-        }
+        json.dumps(
+            {
+                "mode": "check" if check else "build",
+                "root": str(root),
+                "index_sha": digest(root / "index.html"),
+            }
+        )
     )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--check", action="store_true", help="Validate current build/source")
+    parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     build(check=args.check)
 
