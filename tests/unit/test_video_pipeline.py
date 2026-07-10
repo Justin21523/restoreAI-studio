@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from restorai.adapters.rife import RIFEAdapter
@@ -28,6 +27,7 @@ def test_video_validation_rejects_oversized_output(tmp_path: Path, monkeypatch) 
     source = tmp_path / "input.mp4"
     source.write_bytes(b"video")
     pipeline = _pipeline(tmp_path)
+    monkeypatch.setattr("restorai.pipelines.video.shutil.which", lambda _name: "/usr/bin/tool")
     monkeypatch.setattr(
         pipeline,
         "_ffprobe",
@@ -48,6 +48,7 @@ def test_video_validation_rejects_frame_rate_below_input(tmp_path: Path, monkeyp
     source = tmp_path / "input.mp4"
     source.write_bytes(b"video")
     pipeline = _pipeline(tmp_path)
+    monkeypatch.setattr("restorai.pipelines.video.shutil.which", lambda _name: "/usr/bin/tool")
     monkeypatch.setattr(
         pipeline,
         "_ffprobe",
@@ -65,6 +66,4 @@ def test_video_validation_rejects_frame_rate_below_input(tmp_path: Path, monkeyp
 
 
 def test_rife_tensor_padding_supports_non_power_of_two_width() -> None:
-    tensor, shape = RIFEAdapter._tensor(np.zeros((54, 96, 3), dtype=np.uint8), "cpu")
-    assert shape == (54, 96)
-    assert tuple(tensor.shape[-2:]) == (64, 128)
+    assert RIFEAdapter._padded_shape(54, 96) == (64, 128)

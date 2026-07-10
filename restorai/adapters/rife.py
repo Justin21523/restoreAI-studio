@@ -45,15 +45,20 @@ class RIFEAdapter(ModelAdapter):
         return self.health()
 
     @staticmethod
+    def _padded_shape(height: int, width: int) -> tuple[int, int]:
+        # RIFE v4.25's five-scale cascade requires dimensions divisible by 64;
+        # padding only to 32 breaks inputs such as 96×54 at later flow stages.
+        padded_h = ((height + 63) // 64) * 64
+        padded_w = ((width + 63) // 64) * 64
+        return padded_h, padded_w
+
+    @staticmethod
     def _tensor(frame_bgr: np.ndarray, device: Any) -> tuple[Any, tuple[int, int]]:
         import torch
 
         rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         height, width = rgb.shape[:2]
-        # RIFE v4.25's five-scale cascade requires dimensions divisible by 64;
-        # padding only to 32 breaks inputs such as 96×54 at later flow stages.
-        padded_h = ((height + 63) // 64) * 64
-        padded_w = ((width + 63) // 64) * 64
+        padded_h, padded_w = RIFEAdapter._padded_shape(height, width)
         tensor = torch.from_numpy(rgb.transpose(2, 0, 1)).float().div_(255).unsqueeze(0)
         tensor = torch.nn.functional.pad(tensor, (0, padded_w - width, 0, padded_h - height))
         return tensor.to(device), (height, width)
